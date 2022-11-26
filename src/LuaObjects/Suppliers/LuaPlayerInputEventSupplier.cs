@@ -29,14 +29,6 @@ meta.__index = function(table, key)
     end
 end
 
-func.player = function()
-    return context.caller:Call('CCLua.LuaObjects.Suppliers.LuaPlayerSupplier', 'Supply', context.lua, getmetatable(e).obj.player)
-end
-
-func.message = function()
-    return getmetatable(e).obj.message
-end
-
 func.args = function()
     local obj = getmetatable(e).obj
     args = {}
@@ -45,6 +37,10 @@ func.args = function()
     end
     return args
 end
+
+e.player = context.caller:Call('CCLua.LuaObjects.Suppliers.LuaPlayerSupplier', 'Supply', context.lua, getmetatable(e).obj.player)
+
+e.message = getmetatable(e).obj.message
 
 return e
 ")[0];

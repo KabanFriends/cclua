@@ -15,7 +15,6 @@ namespace CCLua.LuaObjects.Suppliers
             return (LuaTable)lua.DoString(@"
 local e = {}
 local meta = {}
-local func = {}
 setmetatable(e, meta)
 
 meta.obj = csEvent
@@ -23,31 +22,15 @@ meta.__tostring = function()
     return 'Event'
 end
 
-meta.__index = function(table, key)
-    if func[key] ~= nil then
-        return func[key]()
-    end
-end
+e.player = context.caller:Call('CCLua.LuaObjects.Suppliers.LuaPlayerSupplier', 'Supply', context.lua, getmetatable(e).obj.player)
 
-func.player = function()
-    return context.caller:Call('CCLua.LuaObjects.Suppliers.LuaPlayerSupplier', 'Supply', context.lua, getmetatable(e).obj.player)
-end
+e.x = getmetatable(e).obj.x
 
-func.x = function()
-    return getmetatable(e).obj.x
-end
+e.y = getmetatable(e).obj.y
 
-func.y = function()
-    return getmetatable(e).obj.y
-end
+e.z = getmetatable(e).obj.z
 
-func.z = function()
-    return getmetatable(e).obj.z
-end
-
-func.block = function()
-    return getmetatable(e).obj.block
-end
+e.block = getmetatable(e).obj.block
 
 e.cancel = function()
     return getmetatable(e).obj:Cancel()
