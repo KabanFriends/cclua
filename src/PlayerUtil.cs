@@ -305,14 +305,11 @@ namespace CCLua
 
         public static void Freeze(Player p)
         {
-            p.Extras["lua_frozen"] = true;
             p.Send(Packet.Motd(p, "-hax horspeed=0.000001 jumps=0 -push"));
         }
 
         public static void Unfreeze(Player p)
         {
-            p.Extras["lua_frozen"] = false;
-
             PlayerData data = LevelHandler.GetContextByLevel(p.level).GetPlayerData(p);
             if (data.customMotd != null)
             {

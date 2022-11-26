@@ -30,7 +30,8 @@ namespace CCLua.Commands
         public override CommandAlias[] Aliases => new CommandAlias[]
         {
             new CommandAlias("LUP", "upload"),
-            new CommandAlias("Call", "call")
+            new CommandAlias("LRUP", "reupload"),
+            new CommandAlias("Call", "call"),
         };
 
         public override void Use(Player p, string message, CommandData data)
@@ -39,17 +40,11 @@ namespace CCLua.Commands
 
             if (args.Length > 0)
             {
-                if (args[0] == "upload")
+                if (args[0].CaselessEq("upload"))
                 {
                     if (data.Context == CommandContext.MessageBlock)
                     {
                         p.Message("&cYou cannot run /lua upload in message blocks!");
-                        return;
-                    }
-
-                    if (p.Rank < ExtraPerms[0].Perm && !LevelInfo.IsRealmOwner(p.level, p.name))
-                    {
-                        p.Message("&cYou can only upload scripts to maps that you own.");
                         return;
                     }
 
@@ -59,34 +54,28 @@ namespace CCLua.Commands
                         return;
                     }
 
-                    string url = args[1];
-                    HttpUtil.FilterURL(ref url);
-
-                    string fileName = p.level.name.ToLower() + ".lua";
-                    string path = Constants.CCLUA_BASE_DIR + Constants.TEMP_DIR + fileName;
-
-                    if (File.Exists(path))
+                    UploadScript(p, args[1]);
+                }
+                else if (args[0].CaselessEq("reupload"))
+                {
+                    if (data.Context == CommandContext.MessageBlock)
                     {
-                        try
-                        {
-                            using (var fs = File.Open(path, FileMode.Open, FileAccess.ReadWrite))
-                            {
-                                fs?.Close();
-                            }
-                        } catch (IOException ex)
-                        {
-                            p.Message("&cScript file is not accessible! Is there already a download in progress?");
-                            return;
-                        }
+                        p.Message("&cYou cannot run /lua reupload in message blocks!");
+                        return;
                     }
 
-                    p.Message("Downloading the script file...");
-                    WebClient wc = new WebClient();
-                    wc.DownloadFileCompleted += new AsyncCompletedEventHandler((sender, e) => OnDownloadComplete(p, sender, fileName, url, e));
-                    wc.DownloadProgressChanged += new DownloadProgressChangedEventHandler((sender, e) => OnDownloadProgress(p, sender, fileName, url, e));
-                    wc.DownloadFileAsync(new Uri(url), path);
+                    if (!p.Extras.Contains("cclua_upload_url"))
+                    {
+                        p.Message("&cYou haven't uploaded a script yet! Use &a/lua upload [url]&c to upload a script!");
+                        return;
+                    }
+
+                    string url = (string)p.Extras["cclua_upload_url"];
+                    p.Message("Uploading a lua script from " + url);
+
+                    UploadScript(p, url);
                 }
-                else if (args[0] == "call")
+                else if (args[0].CaselessEq("call"))
                 {
                     if (!(data.Context == CommandContext.MessageBlock || LevelInfo.IsRealmOwner(p.name, p.level.name) || p.group.Permission >= LevelPermission.Operator))
                     {
@@ -134,8 +123,14 @@ namespace CCLua.Commands
                     {
                         context.CallByPlayer(args[1], p, supplier);
                     }
-                } else if (args[0] == "reload")
+                } else if (args[0].CaselessEq("reload"))
                 {
+                    if (data.Context == CommandContext.MessageBlock)
+                    {
+                        p.Message("&cYou cannot run /lua reload in message blocks!");
+                        return;
+                    }
+
                     if (p.Rank < ExtraPerms[0].Perm && !LevelInfo.IsRealmOwner(p.level, p.name))
                     {
                         p.Message("&cYou may only perform this command on maps that you own.");
@@ -203,10 +198,50 @@ namespace CCLua.Commands
         {
             p.Message("&T/Lua upload [url]");
             p.Message("&HUploads a .lua script file to your map.");
+            p.Message("&T/Lua reupload");
+            p.Message("&HUploads a lua script with the last URL you used.");
             p.Message("&T/Lua reload");
             p.Message("&HReloads and restarts the lua script of the current map.");
             p.Message("&T/Lua call [function] [args]");
             p.Message("&HCalls a lua function with optional arguments.");
+        }
+
+        private void UploadScript(Player p, string url)
+        {
+            if (p.Rank < ExtraPerms[0].Perm && !LevelInfo.IsRealmOwner(p.level, p.name))
+            {
+                p.Message("&cYou can only upload scripts to maps that you own.");
+                return;
+            }
+
+            HttpUtil.FilterURL(ref url);
+
+            p.Extras["cclua_upload_url"] = url;
+
+            string fileName = p.level.name.ToLower() + ".lua";
+            string path = Constants.CCLUA_BASE_DIR + Constants.TEMP_DIR + fileName;
+
+            if (File.Exists(path))
+            {
+                try
+                {
+                    using (var fs = File.Open(path, FileMode.Open, FileAccess.ReadWrite))
+                    {
+                        fs?.Close();
+                    }
+                }
+                catch (IOException ex)
+                {
+                    p.Message("&cScript file is not accessible! Is there already a download in progress?");
+                    return;
+                }
+            }
+
+            p.Message("Downloading the script file...");
+            WebClient wc = new WebClient();
+            wc.DownloadFileCompleted += new AsyncCompletedEventHandler((sender, e) => OnDownloadComplete(p, sender, fileName, url, e));
+            wc.DownloadProgressChanged += new DownloadProgressChangedEventHandler((sender, e) => OnDownloadProgress(p, sender, fileName, url, e));
+            wc.DownloadFileAsync(new Uri(url), path);
         }
 
         private void OnDownloadComplete(Player p, object sender, string fileName, string url, AsyncCompletedEventArgs e)

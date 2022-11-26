@@ -3,6 +3,7 @@ using CCLua.LuaObjects;
 using MCGalaxy;
 using MCGalaxy.Events.PlayerEvents;
 using MCGalaxy.Maths;
+using System.Security.Policy;
 
 namespace CCLua.PluginEvents
 {
@@ -38,6 +39,7 @@ namespace CCLua.PluginEvents
                 LevelHandler.GetContextByLevel(p.level).HandlePlayerLeave(p);
             }
 
+            p.Extras.Remove("cclua_upload_url");
             CCLuaPlugin.usernameMap.Remove(p.truename);
         }
 
