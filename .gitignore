@@ -1,0 +1,6 @@
+.vs/
+packages/
+bin/
+obj/
+libs/MCGalaxy_.dll
+libs/ccs.dll
