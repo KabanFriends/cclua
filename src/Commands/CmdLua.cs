@@ -174,7 +174,7 @@ namespace CCLua.Commands
 
                         LuaContext newContext = LevelHandler.GetContextByLevel(p.level);
 
-                        newContext.Call("onLevelLoad");
+                        newContext.Call("onLevelStart");
 
                         foreach (Player player in p.level.players)
                         {
