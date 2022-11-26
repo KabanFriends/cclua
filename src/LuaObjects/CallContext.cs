@@ -2,7 +2,7 @@
 
 namespace CCLua.LuaObjects
 {
-    public class PlayerCallFunctionEvent : SimplePlayerEvent
+    public class CallContext : SimplePlayerEvent
     {
         public int? mbX;
 
@@ -10,7 +10,7 @@ namespace CCLua.LuaObjects
 
         public int? mbZ;
 
-        public PlayerCallFunctionEvent(Player p, int? mbX, int? mbY, int? mbZ) : base(p)
+        public CallContext(Player p, int? mbX, int? mbY, int? mbZ) : base(p)
         {
             this.mbX = mbX;
             this.mbY = mbY;

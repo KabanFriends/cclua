@@ -116,7 +116,7 @@ namespace CCLua.Commands
                         mbZ = data.MBCoords.Z;
                     }
 
-                    LuaPlayerCallFunctionEventSupplier supplier = new LuaPlayerCallFunctionEventSupplier(new PlayerCallFunctionEvent(p, mbX, mbY, mbZ));
+                    LuaCallContextSupplier supplier = new LuaCallContextSupplier(new CallContext(p, mbX, mbY, mbZ));
 
                     if (args.Length >= 3)
                     {

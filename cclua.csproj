@@ -53,8 +53,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="src\Commands\CmdStaffLua.cs" />
-    <Compile Include="src\LuaObjects\PlayerCallEvent.cs" />
-    <Compile Include="src\LuaObjects\Suppliers\LuaPlayerCallFunctionEventSupplier.cs" />
+    <Compile Include="src\LuaObjects\CallContext.cs" />
+    <Compile Include="src\LuaObjects\Suppliers\LuaCallContextSupplier.cs" />
     <Compile Include="src\PlayerData.cs" />
     <Compile Include="src\CancelState.cs" />
     <Compile Include="src\CCLuaPlugin.cs" />

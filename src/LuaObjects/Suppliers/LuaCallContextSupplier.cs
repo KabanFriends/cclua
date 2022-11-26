@@ -2,13 +2,13 @@
 
 namespace CCLua.LuaObjects.Suppliers
 {
-    public class LuaPlayerCallFunctionEventSupplier : LuaObjectSupplier<PlayerCallFunctionEvent>
+    public class LuaCallContextSupplier : LuaObjectSupplier<CallContext>
     {
-        public LuaPlayerCallFunctionEventSupplier(PlayerCallFunctionEvent e) : base(e)
+        public LuaCallContextSupplier(CallContext e) : base(e)
         {
         }
 
-        public static LuaTable Supply(Lua lua, PlayerCallFunctionEvent e)
+        public static LuaTable Supply(Lua lua, CallContext e)
         {
             lua["csEvent"] = e;
 
