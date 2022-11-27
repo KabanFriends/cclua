@@ -70,8 +70,9 @@ namespace CCLua
 
             try
             {
+                lua["userCode"] = code;
                 SetExecutionCheck(true);
-                lua.DoString($"sandbox.run([[{code}]], {{source = '{Path.GetFileName(path)}'}})");
+                lua.DoString($"sandbox.run(userCode, {{source = '{Path.GetFileName(path)}'}})");
                 SetExecutionCheck(false);
             }
             catch (Exception e)
