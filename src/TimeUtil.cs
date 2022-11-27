@@ -2,7 +2,7 @@
 
 namespace CCLua
 {
-    public class TimeUtil
+    public static class TimeUtil
     {
         public static long GetNanoseconds()
         {
