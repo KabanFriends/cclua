@@ -10,7 +10,7 @@ namespace CCLua.LuaObjects.Suppliers
 
         public static LuaTable Supply(Lua lua, CallContext e)
         {
-            lua["csEvent"] = e;
+            lua["csContext"] = e;
 
             return (LuaTable)lua.DoString(@"
 local e = {}
@@ -18,9 +18,9 @@ local meta = {}
 local func = {}
 setmetatable(e, meta)
 
-meta.obj = csEvent
+meta.obj = csContext
 meta.__tostring = function()
-    return 'Event'
+    return 'CallContext'
 end
 
 meta.__index = function(table, key)

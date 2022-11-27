@@ -42,6 +42,8 @@ func.epochMs = function()
     return context:GetCurrentTimeMillis()
 end
 
+l.name = context.level.name
+
 l.getPlayers = function()
     local list = {}
     context.caller:Call('CCLua.LevelUtil', 'SetPlayersTable', context, list)

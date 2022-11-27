@@ -29,7 +29,10 @@ namespace CCLua.PluginEvents
 
         public static void OnPlayerConnect(Player p)
         {
-            CCLuaPlugin.usernameMap.Add(p.truename, p.name);
+            if (!CCLuaPlugin.usernameMap.ContainsKey(p.truename))
+            {
+                CCLuaPlugin.usernameMap.Add(p.truename, p.name);
+            }
         }
 
         public static void OnPlayerDisconnect(Player p, string reason)
