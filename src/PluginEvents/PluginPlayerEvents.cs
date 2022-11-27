@@ -52,11 +52,6 @@ namespace CCLua.PluginEvents
 
                 PlayerData data = context.GetPlayerData(p);
 
-                if (data != null && data.stareAt != null)
-                {
-                    PlayerUtil.LookAtCoords(p, (Vec3S32)data.stareAt);
-                }
-
                 if (p.Pos != next || p.Rot.RotY != yaw || p.Rot.HeadX != pitch)
                 {
                     context.CallByPlayer("onPlayerMove", p, new LuaPlayerMoveEventSupplier(new PlayerMoveEvent(p, next, yaw, pitch)));

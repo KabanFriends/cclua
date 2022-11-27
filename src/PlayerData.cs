@@ -10,8 +10,6 @@ namespace CCLua
 
         public string customMotd;
 
-        public Vec3S32? stareAt;
-
         public Dictionary<string, Hotkey> hotkeys;
 
         public string model;

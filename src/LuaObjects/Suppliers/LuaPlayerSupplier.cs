@@ -77,6 +77,10 @@ func.web = function()
     return context.caller:Call('CCLua.PlayerUtil', 'IsUsingWeb', getmetatable(p).obj)
 end
 
+func.model = function()
+    return getmetatable(p).obj.Model
+end
+
 func.heldBlock = function()
     return getmetatable(p).obj:GetHeldBlock()
 end
@@ -122,20 +126,12 @@ p.look = function(x, y, z)
     context.caller:Call('CCLua.PlayerUtil', 'Look', getmetatable(p).obj, x, y, z)
 end
 
-p.stare = function(x, y, z)
-    if x == nil or y == nil or z == nil then
-        context.caller:Call('CCLua.PlayerUtil', 'StopStare', getmetatable(p).obj)
-    else
-        context.caller:Call('CCLua.PlayerUtil', 'StartStare', getmetatable(p).obj, x, y, z)
-    end
-end
-
 p.setEnv = function(prop, value)
     context.caller:Call('CCLua.PlayerUtil', 'SetEnv', getmetatable(p).obj, prop, value)
 end
 
 p.setMotd = function(motd)
-    context.caller:Call('CCLua.PlayerUtil', 'Motd', getmetatable(p).obj, motd)
+    context.caller:Call('CCLua.PlayerUtil', 'SetMotd', getmetatable(p).obj, motd)
 end
 
 p.setSpawn = function(x, y, z)

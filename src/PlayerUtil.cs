@@ -334,18 +334,6 @@ namespace CCLua
             LookAtCoords(p, coords);
         }
 
-        public static void StartStare(Player p, double x, double y, double z)
-        {
-            Vec3S32 coords = new Vec3S32((int)x, (int)y, (int)z);
-            LevelHandler.GetContextByLevel(p.level).GetPlayerData(p).stareAt = coords;
-            LookAtCoords(p, coords);
-        }
-
-        public static void StopStare(Player p)
-        {
-            LevelHandler.GetContextByLevel(p.level).GetPlayerData(p).stareAt = null;
-        }
-
         public static void LookAtCoords(Player p, Vec3S32 coords)
         {
             //we want to calculate difference between player's (eye position)
@@ -372,8 +360,7 @@ namespace CCLua
         public static byte? GetEnvColorType(string type)
         {
             if (type.CaselessEq("sky")) { return 0; }
-            if (type.CaselessEq("cloud")) { return 1; }
-            if (type.CaselessEq("clouds")) { return 1; }
+            if (type.CaselessEq("cloud") || type.CaselessEq("clouds")) { return 1; }
             if (type.CaselessEq("fog")) { return 2; }
             if (type.CaselessEq("shadow")) { return 3; }
             if (type.CaselessEq("sun")) { return 4; }
@@ -477,7 +464,7 @@ namespace CCLua
             }
         }
 
-        public static void Motd(Player p, string motd)
+        public static void SetMotd(Player p, string motd)
         {
             PlayerData data = LevelHandler.GetContextByLevel(p.level).GetPlayerData(p);
             if (motd == null || motd.CaselessEq("ignore"))
@@ -507,7 +494,6 @@ namespace CCLua
                 p.SendPos(Entities.SelfID, pos, p.Rot);
                 Entities.Spawn(p, p);
             }
-            p.Message("Your spawnpoint was updated.");
         }
 
         public static string GetTrueMotd(Player p)
@@ -624,6 +610,7 @@ namespace CCLua
             if (model == null)
             {
                 p.UpdateModel(data.model);
+                return;
             }
 
             p.UpdateModel(model);

@@ -135,7 +135,6 @@ end
                     }
                 } catch (Exception e)
                 {
-                    Logger.LogError(e);
                     error = FormatError(e.Message);
                     Stop();
                     
