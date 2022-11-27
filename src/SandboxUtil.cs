@@ -50,20 +50,6 @@ thread.create = function(f, p)
     table.insert(schedules, sch)
 end
 
-wrapnum = function(max, num)
-    if num >= 0 then
-        return num % max
-    else
-        return (num % max + max) % max
-    end
-end
-
-clampnum = function(num, min, max)
-    if num < min then return min end
-    if num > max then return max end
-    return num
-end
-
 level = context.caller:Call('CCLua.LevelUtil', 'GetLevelObject', context.lua)
 ";
 
