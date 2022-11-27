@@ -27,7 +27,7 @@ namespace CCLua.PluginEvents
             }
         }
 
-        public static void OnPlayerConnect(Player p)
+        public static void OnPlayerFinishConnecting(Player p)
         {
             if (!CCLuaPlugin.usernameMap.ContainsKey(p.truename))
             {

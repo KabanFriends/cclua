@@ -77,7 +77,7 @@ namespace CCLua
 
             OnJoinedLevelEvent.Register(PluginPlayerEvents.OnJoinedLevel, Priority.High);
             OnJoiningLevelEvent.Register(PluginPlayerEvents.OnJoiningLevel, Priority.Low);
-            OnPlayerConnectEvent.Register(PluginPlayerEvents.OnPlayerConnect, Priority.Low);
+            OnPlayerFinishConnectingEvent.Register(PluginPlayerEvents.OnPlayerFinishConnecting, Priority.Low);
             OnPlayerDisconnectEvent.Register(PluginPlayerEvents.OnPlayerDisconnect, Priority.Low);
             OnPlayerMoveEvent.Register(PluginPlayerEvents.OnPlayerMove, Priority.Low);
             OnPlayerClickEvent.Register(PluginPlayerEvents.OnPlayerClick, Priority.Low);
@@ -125,6 +125,7 @@ namespace CCLua
 
             OnJoinedLevelEvent.Unregister(PluginPlayerEvents.OnJoinedLevel);
             OnJoiningLevelEvent.Unregister(PluginPlayerEvents.OnJoiningLevel);
+            OnPlayerFinishConnectingEvent.Unregister(PluginPlayerEvents.OnPlayerFinishConnecting);
             OnPlayerDisconnectEvent.Unregister(PluginPlayerEvents.OnPlayerDisconnect);
             OnPlayerMoveEvent.Unregister(PluginPlayerEvents.OnPlayerMove);
             OnPlayerClickEvent.Unregister(PluginPlayerEvents.OnPlayerClick);
