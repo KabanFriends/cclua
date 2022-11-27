@@ -11,3 +11,4 @@ A plugin for [MCGalaxy](https://github.com/UnknownShadow200/MCGalaxy) that allow
     - [MCGalaxy](https://github.com/UnknownShadow200/MCGalaxy)
     - [NLua](https://github.com/NLua/NLua)
     - [lua-sandbox](https://github.com/kikito/lua-sandbox)
+- A huge part of this project is inspired by [Not Awesome Script](https://github.com/NotAwesome2/Not-Awesome-Script).
