@@ -178,6 +178,10 @@ p.teleport = function(x, y, z, yaw, pitch)
     end
 end
 
+p.playParticle = function(particleName, x, y, z, originX, originY, originZ)
+    context.caller:Call('CCLua.PlayerUtil', 'PlayParticle', getmetatable(p).obj, particleName, x, y, z, originX, originY, originZ)
+end
+
 return p
 ")[0];
         }

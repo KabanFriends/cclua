@@ -30,6 +30,10 @@ namespace CCLua
 
         public Dictionary<string, LuaTable> luaPlayers;
 
+        public Dictionary<string, LuaTable> particleData;
+
+        public Dictionary<string, byte> particleIds;
+
         public string currentPlayerName;
 
         public string error;
@@ -59,6 +63,8 @@ namespace CCLua
             caller = new LuaStaticMethodCaller(this);
             playerData = new Dictionary<string, PlayerData>();
             luaPlayers = new Dictionary<string, LuaTable>();
+            particleData = new Dictionary<string, LuaTable>();
+            particleIds = new Dictionary<string, byte>();
 
             lua.State.Encoding = Encoding.UTF8;
 
@@ -333,6 +339,11 @@ end
 
         public void HandlePlayerJoin(Player p)
         {
+            if (!CCLuaPlugin.usernameMap.ContainsKey(p.truename))
+            {
+                CCLuaPlugin.usernameMap.Add(p.truename, p.name);
+            }
+
             ShowStopped(p);
             if (!stopped)
             {
@@ -357,6 +368,7 @@ return p
 
                     luaPlayers.Add(p.truename, luaPlayer);
 
+                    SendAllParticles(p);
                     RawCallByPlayer("onPlayerJoin", p, new LuaSimplePlayerEventSupplier(new SimplePlayerEvent(p)));
                 });
             }
@@ -414,6 +426,21 @@ return p
         public long GetCurrentTimeMillis()
         {
             return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        }
+
+        public void SendAllParticles(Player p)
+        {
+            foreach (string name in particleIds.Keys)
+            {
+                SendParticle(p, name);
+            }
+        }
+
+        public void SendParticle(Player p, string name)
+        {
+            LuaTable particle = particleData[name];
+            byte id = particleIds[name];
+            PlayerUtil.DefineParticle(p, id, particle);
         }
     }
 }

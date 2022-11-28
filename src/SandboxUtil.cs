@@ -22,7 +22,7 @@ string.gsub string.len   string.lower string.match  string.reverse
 string.sub  string.upper
 
 table.insert table.maxn table.remove table.sort
-thread.create delay level
+thread.create delay level particle
 ";
 
         public const string PREDEFINED_FUNCTIONS = @"
@@ -51,6 +51,7 @@ thread.create = function(f, p)
 end
 
 level = context.caller:Call('CCLua.LevelUtil', 'GetLevelObject', context.lua)
+particle = context.caller:Call('CCLua.ParticleUtil', 'GetParticleManager', context.lua)
 ";
 
         public const string SANDBOX_LUA_CODE = @"

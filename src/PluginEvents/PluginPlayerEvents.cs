@@ -2,8 +2,6 @@
 using CCLua.LuaObjects;
 using MCGalaxy;
 using MCGalaxy.Events.PlayerEvents;
-using MCGalaxy.Maths;
-using System.Security.Policy;
 
 namespace CCLua.PluginEvents
 {

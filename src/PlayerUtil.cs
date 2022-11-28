@@ -691,5 +691,49 @@ namespace CCLua
         {
             return p.appName == null ? false : p.appName.CaselessContains("web");
         }
+
+        public static void DefineParticle(Player p, byte id, LuaTable particle)
+        {
+            p.Send(Packet.DefineEffect(
+                            id,
+                            Convert.ToByte(particle["x"]),
+                            Convert.ToByte(particle["y"]),
+                            (byte)(Convert.ToByte(particle["x"]) + Convert.ToByte(particle["width"])),
+                            (byte)(Convert.ToByte(particle["y"]) + Convert.ToByte(particle["height"])),
+                            Convert.ToByte(particle["tintRed"]),
+                            Convert.ToByte(particle["tintGreen"]),
+                            Convert.ToByte(particle["tintBlue"]),
+                            Convert.ToByte(particle["frameCount"]),
+                            Convert.ToByte(particle["particleCount"]),
+                            (byte)(Convert.ToByte(particle["size"]) * 2),
+                            Convert.ToInt32(particle["sizeVariation"]),
+                            Convert.ToInt16(particle["spread"]),
+                            Convert.ToInt32(particle["speed"]),
+                            Convert.ToInt32(particle["gravity"]),
+                            Convert.ToInt32(particle["lifetime"]),
+                            Convert.ToInt32(particle["lifetimeVariation"]),
+                            Convert.ToBoolean(particle["expireUponTouchingGround"]),
+                            Convert.ToBoolean(particle["collideSolid"]),
+                            Convert.ToBoolean(particle["collideLiquid"]),
+                            Convert.ToBoolean(particle["collideLeaves"]),
+                            Convert.ToBoolean(particle["fullBright"]))
+            );
+        }
+
+        public static void PlayParticle(Player p, string name, double x, double y, double z, double originX, double originY, double originZ)
+        {
+            LuaContext context = LevelHandler.GetContextByLevel(p.level);
+
+            if (!context.particleIds.ContainsKey(name))
+            {
+                return;
+            }
+
+            byte id = context.particleIds[name];
+            LuaTable particle = context.particleData[name];
+
+            float offset = Convert.ToSingle(particle["size"]) / 32;
+            p.Send(Packet.SpawnEffect(id, (float)x, (float)y - offset, (float)z, (float)originX, (float)originY - offset, (float)originZ));
+        }
     }
 }
