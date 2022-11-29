@@ -98,6 +98,13 @@ namespace CCLua
                         {
                             doTask.Set();
                             doLuaLoop.WaitOne();
+
+                            if (stopped)
+                            {
+                                break;
+                            }
+
+                            continue;
                         }
 
                         if (stopped)

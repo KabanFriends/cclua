@@ -179,7 +179,11 @@ p.teleport = function(x, y, z, yaw, pitch)
 end
 
 p.playParticle = function(particleName, x, y, z, originX, originY, originZ)
-    context.caller:Call('CCLua.PlayerUtil', 'PlayParticle', getmetatable(p).obj, particleName, x, y, z, originX, originY, originZ)
+    if originX == nil or originY == nil or originZ == nil then
+        context.caller:Call('CCLua.PlayerUtil', 'PlayParticle', getmetatable(p).obj, particleName, x, y, z, x, y, z)
+    else
+        context.caller:Call('CCLua.PlayerUtil', 'PlayParticle', getmetatable(p).obj, particleName, x, y, z, originX, originY, originZ)
+    end
 end
 
 return p
