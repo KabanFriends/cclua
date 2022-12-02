@@ -2,6 +2,8 @@
 using CCLua.LuaObjects.Suppliers;
 using MCGalaxy;
 using MCGalaxy.Network;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NLua;
 using NLua.Event;
 using System;
@@ -34,6 +36,8 @@ namespace CCLua
 
         public Dictionary<string, byte> particleIds;
 
+        public JObject dataJson;
+
         public string currentPlayerName;
 
         public string error;
@@ -42,9 +46,15 @@ namespace CCLua
 
         private long lastInstantTime;
 
+        private long lastAutosave;
+
         private int instructionCount;
 
         private bool doExecutionCheck;
+
+        private bool saveQueued;
+
+        private bool saving;
 
         private AutoResetEvent doTask = new AutoResetEvent(false);
 
@@ -57,8 +67,11 @@ namespace CCLua
             this.level = level;
         }
 
-        public void LoadLua(string path)
+        public void LoadLua()
         {
+            string luaPath = Constants.CCLUA_BASE_DIR + Constants.SCRIPT_DIR + level.name + ".lua";
+            string dataPath = Constants.CCLUA_BASE_DIR + Constants.STORAGE_DIR + level.name + ".dat";
+
             lua = new Lua();
             caller = new LuaStaticMethodCaller(this);
             playerData = new Dictionary<string, PlayerData>();
@@ -68,17 +81,31 @@ namespace CCLua
 
             lua.State.Encoding = Encoding.UTF8;
 
-            string code = File.ReadAllText(path);
+            string code = File.ReadAllText(luaPath);
 
-            lastTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var unix = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            lastTimestamp = unix;
+            lastAutosave = unix;
 
             SandboxUtil.SetupEnvironment(this);
+
+            if (File.Exists(dataPath))
+            {
+                byte[] dataBytes;
+                dataBytes = File.ReadAllBytes(dataPath);
+
+                string json = ZstdUtil.DecompressFromBytes(dataBytes);
+                dataJson = JObject.Parse(json);
+            } else
+            {
+                dataJson = new JObject();
+            }
 
             try
             {
                 lua["userCode"] = code;
                 SetExecutionCheck(true);
-                lua.DoString($"sandbox.run(userCode, {{source = '{Path.GetFileName(path)}'}})");
+                lua.DoString($"sandbox.run(userCode, {{source = '{Path.GetFileName(luaPath)}'}})");
                 SetExecutionCheck(false);
             }
             catch (Exception e)
@@ -146,6 +173,13 @@ while i <= #schedules do
     ::skip::
 end
 ");
+
+                        if (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - lastAutosave > Constants.DATA_AUTOSAVE_SECONDS * 1000)
+                        {
+                            lastAutosave = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                            Logger.Log(LogType.SystemActivity, "cclua: Auto-saving data for level " + level.name);
+                            SaveData();
+                        }
                     }
                 } catch (Exception e)
                 {
@@ -158,8 +192,7 @@ end
                 lua.Close();
             };
 
-            Thread t = new Thread(ts);
-            t.Start();
+            new Thread(ts).Start();
         }
 
         public void CheckExecution(object sender, DebugHookEventArgs args)
@@ -209,6 +242,9 @@ end
         {
             if (stopped) return;
             stopped = true;
+
+            Logger.Log(LogType.SystemActivity, "cclua: Saving data for level " + level.name);
+            SaveData();
 
             foreach (Player p in level.players)
             {
@@ -448,6 +484,31 @@ return p
             LuaTable particle = particleData[name];
             byte id = particleIds[name];
             PlayerUtil.DefineParticle(p, id, particle);
+        }
+
+        public void SaveData()
+        {
+            if (saving)
+            {
+                saveQueued = true;
+                return;
+            }
+
+            saving = true;
+
+            string dataPath = Constants.CCLUA_BASE_DIR + Constants.STORAGE_DIR + level.name + ".dat";
+
+            string json = dataJson.ToString(Formatting.None);
+            byte[] dataBytes = ZstdUtil.CompressToBytes(json);
+            File.WriteAllBytes(dataPath, dataBytes);
+
+            saving = false;
+
+            if (saveQueued)
+            {
+                saveQueued = false;
+                SaveData(); //run the queued save so there is no data lost
+            }
         }
     }
 }

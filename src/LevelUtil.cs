@@ -1,11 +1,14 @@
 ﻿using MCGalaxy;
 using MCGalaxy.Commands;
 using MCGalaxy.Maths;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NLua;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using BlockID = System.UInt16;
 
@@ -68,6 +71,38 @@ end
 
 l.getBlockAt = function(x, y, z)
     return context.caller:Call('CCLua.LevelUtil', 'GetBlockAt', context.level, x, y, z)
+end
+
+l.writeData = function(key, data)
+    context.caller:Call('CCLua.LevelUtil', 'WriteData', context, key, data)
+end
+
+l.readData = function(key)
+    return context.caller:Call('CCLua.LevelUtil', 'ReadData', context, key)
+end
+
+l.getAllData = function()
+    local list = {}
+    context.caller:Call('CCLua.LevelUtil', 'SetAllDataTable', context, list)
+    return list
+end
+
+l.dataExists = function(key)
+    if type(key) ~= 'string' then
+        return false
+    end
+    return context.dataJson:ContainsKey(key)
+end
+
+l.removeData = function(key)
+    if type(key) ~= 'string' then
+        return
+    end
+    context.dataJson:Remove(key)
+end
+
+l.clearAllData = function()
+    context.dataJson:RemoveAll()
 end
 
 return l
@@ -176,6 +211,66 @@ return l
         {
             Vec3S32 coords = new Vec3S32((int)x, (int)y, (int)z);
             return Block.ToRaw(Block.Convert(level.GetBlock((ushort)coords.X, (ushort)coords.Y, (ushort)coords.Z)));
+        }
+
+        public static void WriteData(LuaContext context, string key, object data)
+        {
+            if (data is string || IsLuaNumber(data) || data is bool)
+            {
+                if (data is string strData) context.dataJson[key] = strData;
+                if (IsLuaNumber(data)) context.dataJson[key] = Convert.ToDouble(data);
+                if (data is bool boolData) context.dataJson[key] = boolData;
+
+                string json = context.dataJson.ToString(Formatting.None);
+
+                if (Encoding.UTF8.GetBytes(json).Length > context.config.storageMaxSize)
+                {
+                    context.dataJson.Remove(key);
+                    throw new UserScriptException("Map data storage limit exceeded! Cannot write a new data.");
+                }
+            } else
+            {
+                throw new UserScriptException("Data to write must be a string, a double or a boolean!");
+            }
+        }
+
+        public static object ReadData(LuaContext context, string key)
+        {
+            if (!context.dataJson.ContainsKey(key))
+            {
+                return null;
+            }
+
+            return GetLuaObject(context.dataJson[key]);
+        }
+
+        public static void SetAllDataTable(LuaContext context, LuaTable table)
+        {
+            foreach (var entry in context.dataJson)
+            {
+                table[entry.Key] = GetLuaObject(entry.Value);
+            }
+        }
+
+        private static bool IsLuaNumber(object obj)
+        {
+            return obj is int || obj is long || obj is float || obj is double;
+        }
+
+        private static object GetLuaObject(JToken token)
+        {
+            switch (token.Type)
+            {
+                case JTokenType.String:
+                    return (string)token;
+                case JTokenType.Integer:
+                    return (int)token;
+                case JTokenType.Float:
+                    return (float)token;
+                case JTokenType.Boolean:
+                    return (bool)token;
+            }
+            return null;
         }
     }
 }

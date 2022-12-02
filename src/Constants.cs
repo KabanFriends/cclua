@@ -10,6 +10,9 @@
         public const string CCLUA_BASE_DIR = "cclua/";
         public const string STAFFMAPS_FILE = "staffmaps.txt";
         public const string SCRIPT_DIR = "lua/";
+        public const string STORAGE_DIR = "data/";
         public const string TEMP_DIR = "temp/";
+
+        public const int DATA_AUTOSAVE_SECONDS = 300;
     }
 }

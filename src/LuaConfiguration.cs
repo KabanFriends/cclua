@@ -21,5 +21,10 @@
         {
             get;
         }
+
+        public abstract int storageMaxSize
+        {
+            get;
+        }
     }
 }

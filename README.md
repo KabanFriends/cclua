@@ -3,7 +3,7 @@ A plugin for [MCGalaxy](https://github.com/UnknownShadow200/MCGalaxy) that allow
 
 ## To-do
 - [x] Initial release
-- [ ] Data storage (allows saving and loading data per OS map)
+- [x] Data storage (allows saving and loading data per OS map)
 
 ## Attributions
 - cclua is an open source project under [MIT License](https://github.com/KabanFriends/cclua/blob/master/LICENSE).

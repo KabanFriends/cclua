@@ -88,6 +88,7 @@ namespace CCLua
             Directory.CreateDirectory(Constants.CCLUA_BASE_DIR);
             Directory.CreateDirectory(Constants.CCLUA_BASE_DIR + Constants.TEMP_DIR);
             Directory.CreateDirectory(Constants.CCLUA_BASE_DIR + Constants.SCRIPT_DIR);
+            Directory.CreateDirectory(Constants.CCLUA_BASE_DIR + Constants.STORAGE_DIR);
 
             staffMapsFile = new TextFile(Constants.CCLUA_BASE_DIR + Constants.STAFFMAPS_FILE, null);
             staffMapsFile.EnsureExists();
@@ -132,25 +133,6 @@ namespace CCLua
             OnPlayerChatEvent.Unregister(PluginPlayerEvents.OnPlayerChat);
             OnBlockChangingEvent.Unregister(PluginPlayerEvents.OnBlockChanging);
             OnPlayerCommandEvent.Unregister(PluginPlayerEvents.OnPlayerCommand);
-        }
-
-        public static void Main(string[] args)
-        {
-            using (Lua lua = new Lua())
-            {
-                string text = System.IO.File.ReadAllText("test.lua");
-
-                //testing context
-                LuaContext context = new LuaContext(null);
-                context.config = new StaffLevelLuaConfiguration();
-                context.LoadLua("test.lua");
-
-                Console.WriteLine("Test finished");
-                while (true)
-                {
-
-                }
-            }
         }
     }
 }

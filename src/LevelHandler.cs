@@ -25,7 +25,7 @@ namespace CCLua
 
                 context.config = LevelUtil.IsOsLevel(level) ? osConfig : staffConfig;
 
-                context.LoadLua(path);
+                context.LoadLua();
 
                 return true;
             }
