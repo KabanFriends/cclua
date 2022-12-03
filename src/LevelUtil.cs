@@ -218,8 +218,11 @@ return l
             if (data is string || IsLuaNumber(data) || data is bool)
             {
                 if (data is string strData) context.dataJson[key] = strData;
-                if (IsLuaNumber(data)) context.dataJson[key] = Convert.ToDouble(data);
-                if (data is bool boolData) context.dataJson[key] = boolData;
+                else if (data is int intData) context.dataJson[key] = intData;
+                else if (data is long longData) context.dataJson[key] = longData;
+                else if (data is double doubleData) context.dataJson[key] = doubleData;
+                else if (data is float floatData) context.dataJson[key] = floatData;
+                else if (data is bool boolData) context.dataJson[key] = boolData;
             } else
             {
                 throw new UserScriptException("Data to write must be a string, a double or a boolean!");
@@ -256,9 +259,9 @@ return l
                 case JTokenType.String:
                     return (string)token;
                 case JTokenType.Integer:
-                    return (int)token;
+                    return Convert.ToInt32(token);
                 case JTokenType.Float:
-                    return (float)token;
+                    return Convert.ToSingle(token);
                 case JTokenType.Boolean:
                     return (bool)token;
             }
