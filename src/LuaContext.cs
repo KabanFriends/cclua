@@ -496,21 +496,27 @@ return p
 
             saving = true;
 
-            string dataPath = Constants.CCLUA_BASE_DIR + Constants.STORAGE_DIR + level.name + ".dat";
-
-            string json = dataJson.ToString(Formatting.None);
-            byte[] dataBytes = ZstdUtil.CompressToBytes(json);
-
-            if (dataBytes.LongLength > config.storageMaxSize)
+            try
             {
-                foreach (Player p in level.getPlayers())
+                string dataPath = Constants.CCLUA_BASE_DIR + Constants.STORAGE_DIR + level.name + ".dat";
+
+                string json = dataJson.ToString(Formatting.None);
+                byte[] dataBytes = ZstdUtil.CompressToBytes(json);
+
+                if (dataBytes.LongLength > config.storageMaxSize)
                 {
-                    p.Message("&cFailed to save to the data storage; total data size exceeds the storage limit!");
+                    foreach (Player p in level.getPlayers())
+                    {
+                        p.Message("&cFailed to save to the data storage; total data size exceeds the storage limit!");
+                    }
                 }
-
-            } else
+                else
+                {
+                    File.WriteAllBytes(dataPath, dataBytes);
+                }
+            } catch (Exception e)
             {
-                File.WriteAllBytes(dataPath, dataBytes);
+                Logger.LogError(e);
             }
 
             saving = false;
