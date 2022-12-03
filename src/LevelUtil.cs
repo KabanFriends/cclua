@@ -220,14 +220,6 @@ return l
                 if (data is string strData) context.dataJson[key] = strData;
                 if (IsLuaNumber(data)) context.dataJson[key] = Convert.ToDouble(data);
                 if (data is bool boolData) context.dataJson[key] = boolData;
-
-                string json = context.dataJson.ToString(Formatting.None);
-
-                if (Encoding.UTF8.GetBytes(json).Length > context.config.storageMaxSize)
-                {
-                    context.dataJson.Remove(key);
-                    throw new UserScriptException("Map data storage limit exceeded! Cannot write a new data.");
-                }
             } else
             {
                 throw new UserScriptException("Data to write must be a string, a double or a boolean!");

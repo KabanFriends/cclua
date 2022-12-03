@@ -178,7 +178,7 @@ end
                         {
                             lastAutosave = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                             Logger.Log(LogType.SystemActivity, "cclua: Auto-saving data for level " + level.name);
-                            SaveData();
+                            SaveDataAsync();
                         }
                     }
                 } catch (Exception e)
@@ -244,7 +244,7 @@ end
             stopped = true;
 
             Logger.Log(LogType.SystemActivity, "cclua: Saving data for level " + level.name);
-            SaveData();
+            SaveDataAsync();
 
             foreach (Player p in level.players)
             {
@@ -500,7 +500,18 @@ return p
 
             string json = dataJson.ToString(Formatting.None);
             byte[] dataBytes = ZstdUtil.CompressToBytes(json);
-            File.WriteAllBytes(dataPath, dataBytes);
+
+            if (dataBytes.LongLength > config.storageMaxSize)
+            {
+                foreach (Player p in level.getPlayers())
+                {
+                    p.Message("&cFailed to save to the data storage; total data size exceeds the storage limit!");
+                }
+
+            } else
+            {
+                File.WriteAllBytes(dataPath, dataBytes);
+            }
 
             saving = false;
 
@@ -509,6 +520,16 @@ return p
                 saveQueued = false;
                 SaveData(); //run the queued save so there is no data lost
             }
+        }
+
+        public void SaveDataAsync()
+        {
+            ThreadStart ts = delegate
+            {
+                SaveData();
+            };
+
+            new Thread(ts).Start();
         }
     }
 }
