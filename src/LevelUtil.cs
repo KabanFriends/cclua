@@ -47,6 +47,10 @@ end
 
 l.name = context.level.name
 
+l.broadcast = function(text)
+    context.caller:Call('CCLua.LevelUtil', 'Broadcast', context.level, tostring(text))
+end
+
 l.getPlayers = function()
     local list = {}
     context.caller:Call('CCLua.LevelUtil', 'SetPlayersTable', context, list)
@@ -271,6 +275,14 @@ return l
                     return (bool)token;
             }
             return null;
+        }
+
+        public static void Broadcast(Level level, string message)
+        {
+            foreach (Player p in level.players)
+            {
+                PlayerUtil.Message(p, message);
+            }
         }
     }
 }
