@@ -102,6 +102,11 @@ namespace CCLua.PluginEvents
 
         public static void OnPlayerChat(Player p, string message)
         {
+            if (p.cancelchat)
+            {
+                return;
+            }
+
             if (LevelHandler.HasLuaContext(p.level))
             {
                 LuaContext context = LevelHandler.GetContextByLevel(p.level);
