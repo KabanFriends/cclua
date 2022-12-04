@@ -285,9 +285,9 @@ namespace CCLua
             if (block is string str)
             {
                 args += str;
-            } else if (block is double d)
+            } else if (IsLuaNumber(block))
             {
-                args += (int)d;
+                args += Convert.ToInt64(block);
             } else
             {
                 throw new UserScriptException("Invalid block type in tempblock");
@@ -389,9 +389,9 @@ namespace CCLua
             if (type != null)
             {
                 string hex;
-                if (value is double || value is int)
+                if (IsLuaNumber(value))
                 {
-                    hex = string.Format("{0:X}", value);
+                    hex = string.Format("{0:X}", Convert.ToInt32(value));
                 } else if (value is string stringValue)
                 {
                     hex = stringValue;
@@ -441,12 +441,9 @@ namespace CCLua
                 }
 
                 int propValue = 0;
-                if (value is double doubleValue)
+                if (IsLuaNumber(value))
                 {
-                    propValue = (int)doubleValue;
-                } else if (value is int intValue)
-                {
-                    propValue = intValue;
+                    propValue = Convert.ToInt32(value);
                 } else if (value is string valueString)
                 {
                     if (!CommandParser.GetInt(p, valueString, "env int value", ref propValue))
@@ -632,9 +629,9 @@ namespace CCLua
             if (block is string strBlock)
             {
                 b = strBlock;
-            } else if (block is double dbl)
+            } else if (IsLuaNumber(block))
             {
-                b = dbl.ToString();
+                b = Convert.ToInt32(block).ToString();
             }
 
             if (b == null) return;
@@ -734,6 +731,11 @@ namespace CCLua
 
             float offset = Convert.ToSingle(particle["size"]) / 32;
             p.Send(Packet.SpawnEffect(id, (float)x, (float)y - offset, (float)z, (float)originX, (float)originY - offset, (float)originZ));
+        }
+
+        private static bool IsLuaNumber(object obj)
+        {
+            return obj is int || obj is long || obj is float || obj is double;
         }
     }
 }
