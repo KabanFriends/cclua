@@ -147,6 +147,12 @@ namespace CCLua
             { "SLEEP",        223 }
         };
 
+        public static void Message(Player p, string message)
+        {
+            if (!IsUsingCef(p) && message.StartsWith("cef ")) return;
+            p.Message(message);
+        }
+
         public static void CpeMessage(Player p, string pos, string message)
         {
             CpeMessageType type;

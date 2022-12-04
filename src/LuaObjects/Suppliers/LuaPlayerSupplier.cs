@@ -103,7 +103,7 @@ end
 -- FUNCTIONS
 p.message = function(str)
     if context:IsPlayerInLevel(getmetatable(p).obj) == false then return end
-    getmetatable(p).obj:Message(tostring(str))
+    context.caller:Call('CCLua.PlayerUtil', 'Message', getmetatable(p).obj, str)
 end
 
 p.cpeMessage = function(pos, str)
