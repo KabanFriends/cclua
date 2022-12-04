@@ -17,7 +17,6 @@ namespace CCLua
 {
     public class LuaContext
     {
-
         public bool stopped;
 
         public LuaConfiguration config;
@@ -450,8 +449,14 @@ return p
                 foreach (Hotkey key in data.hotkeys.Values)
                 {
                     PlayerUtil.UndefineHotkey(p, key);
+
                 }
             }
+        }
+
+        public bool IsPlayerInLevel(Player p)
+        {
+            return luaPlayers.ContainsKey(p.truename);
         }
 
         public PlayerData GetPlayerData(Player p)
