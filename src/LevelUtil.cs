@@ -183,10 +183,15 @@ return l
 
         public static void PlaceBlock(Level level, object block, double x, double y, double z)
         {
-            BlockID id;
-            if (block is double dbl)
+            BlockID id = 0;
+            if (IsLuaNumber(block))
             {
-                id = Convert.ToUInt16(dbl);
+                if (block is int intId) id = Convert.ToUInt16(intId);
+                else if (block is long longId) id = Convert.ToUInt16(longId);
+                else if (block is double doubleId) id = Convert.ToUInt16(doubleId);
+                else if (block is float floatId) id = Convert.ToUInt16(floatId);
+
+                id = Block.FromRaw(id);
             } else if (block is string str)
             {
                 var tempId = GetBlockId(level, str);
