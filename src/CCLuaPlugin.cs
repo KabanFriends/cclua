@@ -103,6 +103,8 @@ namespace CCLua
                     staffMaps.Add(line);
                 }
             }
+
+            LevelHandler.TryCreateLuaContext(Server.mainLevel); //plugins are loaded after main is loaded
         }
 
         public override void Unload(bool auto)
