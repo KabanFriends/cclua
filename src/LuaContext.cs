@@ -176,7 +176,10 @@ end
                         if (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - lastAutosave > Constants.DATA_AUTOSAVE_SECONDS * 1000)
                         {
                             lastAutosave = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                            Logger.Log(LogType.SystemActivity, "cclua: Auto-saving data for level " + level.name);
+                            if (level != Server.mainLevel)
+                            {
+                                Logger.Log(LogType.SystemActivity, "cclua: Auto-saving data for level " + level.name);
+                            }
                             SaveDataAsync();
                         }
                     }
