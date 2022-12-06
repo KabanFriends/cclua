@@ -112,8 +112,7 @@ namespace CCLua
             }
             catch (Exception e)
             {
-                error = FormatError(e.Message);
-                Stop();
+                ReportError(e.Message, null, true);
                 return;
             }
 
@@ -161,7 +160,7 @@ while i <= #schedules do
                 goto skip
             end
         else
-            context:ReportError(tostring(result), sch.player)
+            context:ReportError(tostring(result), sch.player, false)
             if context.stopped then
                 break
             end
@@ -186,9 +185,8 @@ end
                     }
                 } catch (Exception e)
                 {
-                    error = FormatError(e.Message);
-                    Stop();
-                    
+                    ReportError(e.Message, null, true);
+
                     doTask.Set(); //do not make the main thread stuck
                 }
 
@@ -372,23 +370,33 @@ if env[func] ~= nil and type(env[func]) == 'function' then
             table.insert(schedules, sch)
         end
     else
-        context:ReportError(tostring(result), player)
+        context:ReportError(tostring(result), player, false)
     end
 end
 ");
         }
 
-        public void ReportError(string error, string playerName)
+        public void ReportError(string error, string playerName, bool stopIfGlobal)
         {
             if (playerName == null)
             {
-                this.error = FormatError(error);
-                Stop();
+                if (stopIfGlobal)
+                {
+                    this.error = FormatError(error);
+                    Stop();
+                    return;
+                }
+
+                foreach (Player p in level.players)
+                {
+                    p.Message("&eLua error:");
+                    p.Message("&c" + FormatError(error));
+                }
             } else
             {
                 Player p = PlayerInfo.FindExact(CCLuaPlugin.usernameMap[playerName]);
                 p.Message("&eLua error:");
-                p.Message("&c" + error);
+                p.Message("&c" + FormatError(error));
             }
         }
 
