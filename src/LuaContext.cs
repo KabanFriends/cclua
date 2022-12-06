@@ -61,6 +61,8 @@ namespace CCLua
 
         private int taskCount;
 
+        private Dictionary<int, int> taskRecursions;
+
         public LuaContext(Level level)
         {
             this.level = level;
@@ -77,6 +79,7 @@ namespace CCLua
             luaPlayers = new Dictionary<string, LuaTable>();
             particleData = new Dictionary<string, LuaTable>();
             particleIds = new Dictionary<string, byte>();
+            taskRecursions = new Dictionary<int, int>();
 
             lua.State.Encoding = Encoding.UTF8;
 
@@ -129,8 +132,6 @@ namespace CCLua
                             {
                                 break;
                             }
-
-                            continue;
                         }
 
                         if (stopped)
@@ -258,11 +259,32 @@ end
 
         public void WaitForLua(Action action)
         {
-            if (stopped) return;
+            if (stopped)
+            {
+                doLuaLoop.Set();
+                return;
+            }
 
-            taskCount++;
-            doTask.WaitOne();
-            if (stopped) return;
+            var threadId = Thread.CurrentThread.ManagedThreadId;
+
+            if (!taskRecursions.ContainsKey(threadId))
+            {
+                taskRecursions[threadId] = 0;
+            }
+
+            if (taskRecursions[threadId] == 0)
+            {
+                taskCount++;
+                doTask.WaitOne();
+            }
+
+            if (stopped)
+            {
+                doLuaLoop.Set();
+                return;
+            }
+
+            taskRecursions[threadId]++;
 
             try
             {
@@ -272,8 +294,22 @@ end
                 Logger.LogError(e);
             }
 
-            if (taskCount > 0) taskCount--;
-            doLuaLoop.Set();
+            if (taskRecursions[threadId] > 0) taskRecursions[threadId]--;
+
+            if (taskRecursions[threadId] == 0)
+            {
+                taskRecursions.Remove(threadId);
+                taskCount--;
+
+                if (taskCount > 0)
+                {
+                    doTask.Set();
+                } else
+                {
+                    taskCount = 0;;
+                    doLuaLoop.Set();
+                }
+            }
         }
 
         public void Print(string text)
