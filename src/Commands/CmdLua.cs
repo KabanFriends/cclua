@@ -173,7 +173,7 @@ namespace CCLua.Commands
 
                         foreach (Player player in p.level.players)
                         {
-                            newContext.HandlePlayerJoin(p);
+                            newContext.HandlePlayerJoin(player);
                         }
                     } else
                     {
