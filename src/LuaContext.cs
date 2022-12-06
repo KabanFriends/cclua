@@ -326,6 +326,8 @@ end
         {
             if (stopped) return;
 
+            if (player != null && !IsPlayerInLevel(player)) return;
+
             WaitForLua(delegate
             {
                 RawCallByPlayer(function, player, args);
