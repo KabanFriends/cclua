@@ -147,6 +147,27 @@ local function cleanup()
   string.rep = string_rep -- luacheck: no global
 end
 
+local bit32 = {}
+
+function bit32.lshift(a, b)
+	return (a << b)
+end
+function bit32.rshift(a, b)
+	return (a >> b)
+end
+function bit32.band(a, b)
+	return (a & b)
+end
+function bit32.bor(a, b)
+	return (a | b)
+end
+function bit32.bxor(a, b)
+	return (a ~ b)
+end
+function bit32.bnot(a)
+	return (~a)
+end
+
 -- Public interface: sandbox.protect
 function sandbox.protect(code, options)
   options = options or {}
