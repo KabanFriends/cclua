@@ -513,7 +513,10 @@ end
             PlayerData data = GetPlayerData(p);
             if (data != null)
             {
-                p.UpdateModel(data.model);
+                if (LevelUtil.IsOsLevel(level))
+                {
+                    p.UpdateModel(data.model);
+                }
                 p.Send(Packet.ClickDistance(160));
                 p.SendCpeMessage(CpeMessageType.Announcement, "");
                 p.SendCpeMessage(CpeMessageType.BigAnnouncement, "");
