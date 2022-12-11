@@ -1,4 +1,5 @@
-﻿using MCGalaxy;
+﻿using CCLua.LuaObjects;
+using MCGalaxy;
 using MCGalaxy.Commands;
 using MCGalaxy.Maths;
 using Newtonsoft.Json;
@@ -125,16 +126,16 @@ return l
         public static void SetPlayersTable(LuaContext context, LuaTable table)
         {
             int i = 1;
-            foreach (LuaTable player in context.luaPlayers.Values)
+            foreach (LuaPlayer lp in context.luaPlayers.Values)
             {
-                table[i] = player;
+                table[i] = lp.table;
                 i++;
             }
         }
 
         public static LuaTable GetPlayer(LuaContext context, string name)
         {
-            return context.luaPlayers.ContainsKey(name) ? context.luaPlayers[name] : null;
+            return context.GetLuaPlayer(name).table;
         }
 
         public static string GetBlockName(Level level, double block)

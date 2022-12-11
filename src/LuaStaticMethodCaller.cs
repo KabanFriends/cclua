@@ -15,12 +15,12 @@ namespace CCLua
 
         public object Call(string typeFullName, string method, params object[] args)
         {
-            string name = context.currentPlayerName;
+            Player p = context.currentPlayer;
             if (args.Length > 0)
             {
-                if (args[0] is Player p)
+                if (args[0] is Player player)
                 {
-                    name = p.truename;
+                    p = player;
                 }
             }
 
@@ -29,7 +29,7 @@ namespace CCLua
                 return Assembly.GetExecutingAssembly().GetType(typeFullName).GetMethod(method).Invoke(null, args);
             } catch (Exception e)
             {
-                if (name != null)
+                if (p != null)
                 {
                     string extraInfo = "";
 
@@ -43,7 +43,6 @@ namespace CCLua
 
                     var methodName = char.ToLower(method[0]) + method.Substring(1);
 
-                    Player p = PlayerInfo.FindExact(CCLuaPlugin.usernameMap[name]);
                     p.Message($"&cError: Invalid usage of {methodName} {extraInfo}");
 
                     if (p.Rank > LevelPermission.Operator)

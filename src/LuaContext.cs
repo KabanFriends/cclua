@@ -2,6 +2,7 @@
 using CCLua.LuaObjects.Suppliers;
 using MCGalaxy;
 using MCGalaxy.Network;
+using MCGalaxy.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NLua;
@@ -19,44 +20,36 @@ namespace CCLua
     {
         public bool stopped;
 
-        public LuaConfiguration config;
-
         public Lua lua;
+        public LuaConfiguration config;
+        public LuaStaticMethodCaller caller;
 
         public Level level;
 
-        public LuaStaticMethodCaller caller;
+        public List<LuaSchedule> schedules;
 
         public Dictionary<string, PlayerData> playerData;
-
-        public Dictionary<string, LuaTable> luaPlayers;
-
+        public Dictionary<string, LuaPlayer> luaPlayers;
         public Dictionary<string, LuaTable> particleData;
-
         public Dictionary<string, byte> particleIds;
 
         public JObject dataJson;
 
-        public string currentPlayerName;
+        public Player currentPlayer;
+
+        // Used for passing objects to lua
+        public object[] obj;
 
         public string error;
-
         private long lastTimestamp;
-
         private long lastInstantTime;
-
-        private long lastAutosave;
-
         private int instructionCount;
-
         private bool doExecutionCheck;
 
         private bool saveQueued;
-
         private bool saving;
 
         private AutoResetEvent doTask = new AutoResetEvent(false);
-
         private AutoResetEvent doLuaLoop = new AutoResetEvent(false);
 
         private int taskCount;
@@ -73,10 +66,12 @@ namespace CCLua
             string luaPath = Constants.CCLUA_BASE_DIR + Constants.SCRIPT_DIR + level.name + ".lua";
             string dataPath = Constants.CCLUA_BASE_DIR + Constants.STORAGE_DIR + level.name + ".dat";
 
+            obj = new object[5];
             lua = new Lua();
             caller = new LuaStaticMethodCaller(this);
+            schedules = new List<LuaSchedule>();
             playerData = new Dictionary<string, PlayerData>();
-            luaPlayers = new Dictionary<string, LuaTable>();
+            luaPlayers = new Dictionary<string, LuaPlayer>();
             particleData = new Dictionary<string, LuaTable>();
             particleIds = new Dictionary<string, byte>();
             taskRecursions = new Dictionary<int, int>();
@@ -85,9 +80,7 @@ namespace CCLua
 
             string code = File.ReadAllText(luaPath);
 
-            var unix = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            lastTimestamp = unix;
-            lastAutosave = unix;
+            lastTimestamp = Environment.TickCount;
 
             SandboxUtil.SetupEnvironment(this);
 
@@ -105,9 +98,9 @@ namespace CCLua
 
             try
             {
-                lua["userCode"] = code;
+                obj[0] = code;
                 SetExecutionCheck(true);
-                lua.DoString($"sandbox.run(userCode, {{source = '{Path.GetFileName(luaPath)}'}})");
+                lua.DoString($"sandbox.run(context.obj[0], {{source = '{Path.GetFileName(luaPath)}'}})");
                 SetExecutionCheck(false);
             }
             catch (Exception e)
@@ -115,6 +108,22 @@ namespace CCLua
                 ReportError(e.Message, null, true);
                 return;
             }
+
+            Server.MainScheduler.QueueRepeat(delegate (SchedulerTask task)
+            {
+                if (!stopped)
+                {
+                    if (level != Server.mainLevel)
+                    {
+                        Logger.Log(LogType.SystemActivity, "cclua: Auto-saving data for level " + level.name);
+                    }
+                    SaveDataAsync();
+                }
+                else
+                {
+                    task.Repeating = false;
+                }
+            }, null, TimeSpan.FromSeconds(Constants.DATA_AUTOSAVE_SECONDS));
 
             ThreadStart ts = delegate
             {
@@ -138,49 +147,61 @@ namespace CCLua
                             break;
                         }
 
-                        lua.DoString(@"
-local i = 1
-while i <= #schedules do
-    sch = schedules[i]
-    if sch.player ~= nil and context:GetLuaPlayer(sch.player) == nil then
-        table.remove(schedules, i)
-        goto skip
-    end
-    if context:GetCurrentTimeMillis() > sch.sleepUntil then
-        context.currentPlayerName = sch.player;
-        context:SetExecutionCheck(true)
-        local success, result = coroutine.resume(sch.thread)
-        context:SetExecutionCheck(false)
-        context.currentPlayerName = nil;
-        if success then
-            if coroutine.status(sch.thread) ~= 'dead' and type(result) == 'number' and result >= 0 then
-                schedules[i].sleepUntil = context:GetCurrentTimeMillis() + result
-            else
-                table.remove(schedules, i)
-                goto skip
-            end
-        else
-            context:ReportError(tostring(result), sch.player, false)
-            if context.stopped then
-                break
-            end
-            table.remove(schedules, i)
-            goto skip
-        end
-    end
-    i = i + 1
-    ::skip::
-end
-");
-
-                        if (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - lastAutosave > Constants.DATA_AUTOSAVE_SECONDS * 1000)
+                        int tick = Environment.TickCount;
+                        for (int i = schedules.Count - 1; i >= 0; i--)
                         {
-                            lastAutosave = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                            if (level != Server.mainLevel)
+                            LuaSchedule sch = schedules[i];
+                            if (sch.luaPlayer != null && sch.luaPlayer.quit)
                             {
-                                Logger.Log(LogType.SystemActivity, "cclua: Auto-saving data for level " + level.name);
+                                schedules.RemoveAt(i);
+                                continue;
                             }
-                            SaveDataAsync();
+
+                            if (tick > sch.waitUntil)
+                            {
+                                currentPlayer = sch.luaPlayer?.player;
+                                SetExecutionCheck(true);
+                                obj[0] = sch;
+                                object[] result = lua.DoString(@"
+local sch = context.obj[0]
+local success, result = coroutine.resume(sch.coroutine)
+local status = coroutine.status(sch.coroutine)
+local hasWait = false
+local resultStr = tostring(result)
+if type(result) == 'number' then
+    hasWait = true
+end
+return success, result, status, hasWait, resultStr
+");
+                                currentPlayer = null;
+                                SetExecutionCheck(false);
+
+                                bool success = (bool)result[0];
+                                string status = (string)result[2];
+                                bool hasWait = (bool)result[3];
+                                string resultStr = (string)result[4];
+
+                                if (success)
+                                {
+                                    long wait = Convert.ToInt64(result[1]);
+                                    if (status != "dead" && hasWait && wait >= 0)
+                                    {
+                                        sch.waitUntil = tick + wait;
+                                    } else
+                                    {
+                                        schedules.RemoveAt(i);
+                                        continue;
+                                    }
+                                } else
+                                {
+                                    ReportError(resultStr, sch.luaPlayer?.player, false);
+                                    if (stopped)
+                                    {
+                                        break;
+                                    }
+                                    schedules.RemoveAt(i);
+                                }
+                            }
                         }
                     }
                 } catch (Exception e)
@@ -190,6 +211,8 @@ end
                     doTask.Set(); //do not make the main thread stuck
                 }
 
+                lua.DoString("collectgarbage()");
+                lua.Dispose();
                 lua.Close();
             };
 
@@ -198,12 +221,15 @@ end
 
         public void CheckExecution(object sender, DebugHookEventArgs args)
         {
+            lua.DoString("collectgarbage()");
+
             if (!doExecutionCheck)
             {
                 return;
             }
 
-            long diff = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - lastTimestamp;
+            long now = Environment.TickCount;
+            long diff = now - lastTimestamp;
             long nanoDiff = TimeUtil.GetNanoseconds() - lastInstantTime;
 
             instructionCount += config.instructionsPerExecutionCheck;
@@ -222,7 +248,7 @@ end
 
             if (diff > config.executionCheckTimeMs)
             {
-                lastTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                lastTimestamp = now;
                 instructionCount = 0;
             }
         }
@@ -324,7 +350,7 @@ end
         {
             if (stopped) return;
 
-            if (player != null && !IsPlayerInLevel(player)) return;
+            if (player != null && !luaPlayers.ContainsKey(player.truename)) return;
 
             WaitForLua(delegate
             {
@@ -336,21 +362,23 @@ end
         //Only call this when you are sure that the lua context is available.
         public void RawCallByPlayer(string function, Player player, params object[] args)
         {
-            LuaCall call = new LuaCall(function, player, args);
-            lua["call"] = call;
+            obj[0] = function;
+            obj[1] = player;
+            obj[2] = args;
 
             lua.DoString(@"
-local func = call.functionName
-local player = call.playerName
+local func = context.obj[0]
+local player = context.obj[1]
+local rawArgs = context.obj[2]
 
 if env[func] ~= nil and type(env[func]) == 'function' then
     local args = {}
-    if call.args.Length > 0 then
-        for j = 1, call.args.Length do
-            if call:IsObjectSupplier(j - 1) then
-                args[j] = call.args[j - 1]:CallSupply(context.lua)
+    if rawArgs.Length > 0 then
+        for j = 1, rawArgs.Length do
+            if context:IsObjectSupplier(rawArgs[j - 1]) then
+                args[j] = rawArgs[j - 1]:CallSupply(context)
             else
-                args[j] = call.args[j - 1]
+                args[j] = rawArgs[j - 1]
             end
         end
     end
@@ -359,15 +387,18 @@ if env[func] ~= nil and type(env[func]) == 'function' then
         env[func](table.unpack(args))
     end)
 
-    context.currentPlayerName = player;
+    context.currentPlayer = player;
     context:SetExecutionCheck(true)
     local success, result = coroutine.resume(co)
     context:SetExecutionCheck(false)
-    context.currentPlayerName = nil;
+    context.currentPlayer = nil;
     if success then
         if coroutine.status(co) ~= 'dead' and type(result) == 'number' and result >= 0 then
-            local sch = {thread = co, player = player, sleepUntil = context:GetCurrentTimeMillis() + result}
-            table.insert(schedules, sch)
+            local lp = nil
+            if player ~= nil and type(player) == 'string' then
+                lp = context:GetLuaPlayer(player.truename)
+            end
+            context:Schedule(co, result, lp)
         end
     else
         context:ReportError(tostring(result), player, false)
@@ -376,9 +407,19 @@ end
 ");
         }
 
-        public void ReportError(string error, string playerName, bool stopIfGlobal)
+        public bool IsObjectSupplier(object obj)
         {
-            if (playerName == null)
+            return obj is LuaObjectSupplier;
+        }
+
+        public void Schedule(object coroutine, long waitMilliseconds, LuaPlayer luaPlayer = null)
+        {
+            schedules.Add(new LuaSchedule(coroutine, waitMilliseconds, luaPlayer));
+        }
+
+        public void ReportError(string error, Player player, bool stopIfGlobal)
+        {
+            if (player == null)
             {
                 if (stopIfGlobal)
                 {
@@ -394,9 +435,8 @@ end
                 }
             } else
             {
-                Player p = PlayerInfo.FindExact(CCLuaPlugin.usernameMap[playerName]);
-                p.Message("&eLua error:");
-                p.Message("&c" + FormatError(error));
+                player.Message("&eLua error:");
+                player.Message("&c" + FormatError(error));
             }
         }
 
@@ -442,22 +482,10 @@ end
 
                 WaitForLua(delegate
                 {
-                    lua["csPlayer"] = p;
+                    LuaPlayer lp = new LuaPlayer(p);
+                    lp.CreateLuaTable(this);
 
-                    LuaTable luaPlayer = (LuaTable)lua.DoString(@"
-local p = {}
-local meta = {}
-
-meta.obj = csPlayer
-meta.__tostring = function()
-    return 'Player'
-end
-
-setmetatable(p, meta)
-return p
-")[0];
-
-                    luaPlayers.Add(p.truename, luaPlayer);
+                    luaPlayers.Add(p.truename, lp);
 
                     SendAllParticles(p);
                     RawCallByPlayer("onPlayerJoin", p, new LuaSimplePlayerEventSupplier(new SimplePlayerEvent(p)));
@@ -472,6 +500,8 @@ return p
                 RawCallByPlayer("onPlayerLeave", p, new LuaSimplePlayerEventSupplier(new SimplePlayerEvent(p)));
 
                 ResetPlayer(p);
+
+                luaPlayers[p.truename].quit = true;
 
                 playerData.Remove(p.truename);
                 luaPlayers.Remove(p.truename);
@@ -503,21 +533,16 @@ return p
             }
         }
 
-        public bool IsPlayerInLevel(Player p)
-        {
-            return luaPlayers.ContainsKey(p.truename);
-        }
-
         public PlayerData GetPlayerData(Player p)
         {
-            if (!playerData.ContainsKey(p.truename)) return null;
-            return playerData[p.truename];
+            PlayerData data;
+            return playerData.TryGetValue(p.truename, out data) ? data : null;
         }
 
-        public LuaTable GetLuaPlayer(string name)
+        public LuaPlayer GetLuaPlayer(string name)
         {
-            if (!luaPlayers.ContainsKey(name)) return null;
-            return luaPlayers[name];
+            LuaPlayer lp;
+            return luaPlayers.TryGetValue(name, out lp) ? lp : null;
         }
 
         public long GetCurrentTimeMillis()

@@ -27,27 +27,19 @@ thread.create delay level particle
 
         public const string PREDEFINED_FUNCTIONS = @"
 thread = {}
-schedules = {}
 players = {}
 
 delay = function(ms)
     coroutine.yield(ms)
 end
 
-thread.internalCreate = function(f, player)
-    local co = coroutine.create(f)
-    local sch = {thread = co, player = player, sleepUntil = 0}
-    table.insert(schedules, sch)
-end
-
 thread.create = function(f, p)
-    n = nil
-    if p ~= nil then
-        n = p.name
+    local lp = nil
+    if p ~= nil and type(p) == 'string' then
+        lp = context:GetLuaPlayer(n)
     end
     local co = coroutine.create(f)
-    local sch = {thread = co, player = n, sleepUntil = 0}
-    table.insert(schedules, sch)
+    context:Schedule(co, 0, lp)
 end
 
 level = context.caller:Call('CCLua.LevelUtil', 'GetLevelObject', context.lua)

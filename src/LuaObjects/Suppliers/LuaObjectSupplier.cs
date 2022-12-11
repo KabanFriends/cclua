@@ -5,6 +5,8 @@ namespace CCLua.LuaObjects.Suppliers
     public abstract class LuaObjectSupplier
     {
         //dummy class for type checks
+
+        public abstract LuaTable CallSupply(LuaContext context);
     }
 
     public abstract class LuaObjectSupplier<T> : LuaObjectSupplier
@@ -17,12 +19,12 @@ namespace CCLua.LuaObjects.Suppliers
         }
 
         //called from lua, very janky but this works
-        public LuaTable CallSupply(Lua lua)
+        public override LuaTable CallSupply(LuaContext context)
         {
-            return (LuaTable) GetType().GetMethod("Supply").Invoke(null, new object[] { lua, value });
+            return (LuaTable) GetType().GetMethod("Supply").Invoke(null, new object[] { context, value });
         }
 
-        public static LuaTable Supply(Lua lua, T obj)
+        public static LuaTable Supply(LuaContext context, T obj)
         {
             return null;
         }

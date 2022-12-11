@@ -71,6 +71,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="src\LuaObjects\LuaPlayer.cs" />
+    <Compile Include="src\LuaSchedule.cs" />
     <Compile Include="src\ZstdUtil.cs" />
     <Compile Include="src\Commands\CmdStaffLua.cs" />
     <Compile Include="src\LuaObjects\CallContext.cs" />
@@ -100,7 +102,6 @@
     <Compile Include="src\PluginEvents\PluginPlayerEvents.cs" />
     <Compile Include="src\LevelHandler.cs" />
     <Compile Include="src\LevelUtil.cs" />
-    <Compile Include="src\LuaCall.cs" />
     <Compile Include="src\LuaObjects\Suppliers\LuaObjectSupplier.cs" />
     <Compile Include="src\LuaObjects\Suppliers\LuaPlayerSupplier.cs" />
     <Compile Include="src\LuaStaticMethodCaller.cs" />

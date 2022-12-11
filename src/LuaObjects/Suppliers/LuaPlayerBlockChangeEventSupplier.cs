@@ -8,21 +8,21 @@ namespace CCLua.LuaObjects.Suppliers
         {
         }
 
-        public static LuaTable Supply(Lua lua, PlayerBlockChangeEvent e)
+        public static LuaTable Supply(LuaContext context, PlayerBlockChangeEvent e)
         {
-            lua["csEvent"] = e;
+            context.obj[0] = e;
 
-            return (LuaTable)lua.DoString(@"
+            return (LuaTable)context.lua.DoString(@"
 local e = {}
 local meta = {}
 setmetatable(e, meta)
 
-meta.obj = csEvent
+meta.obj = context.obj[0]
 meta.__tostring = function()
     return 'Event'
 end
 
-e.player = context.caller:Call('CCLua.LuaObjects.Suppliers.LuaPlayerSupplier', 'Supply', context.lua, getmetatable(e).obj.player)
+e.player = context.caller:Call('CCLua.LuaObjects.Suppliers.LuaPlayerSupplier', 'Supply', context, getmetatable(e).obj.player)
 
 e.x = getmetatable(e).obj.x
 

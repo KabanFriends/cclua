@@ -8,17 +8,17 @@ namespace CCLua.LuaObjects.Suppliers
         {
         }
 
-        public static LuaTable Supply(Lua lua, CallContext e)
+        public static LuaTable Supply(LuaContext context, CallContext e)
         {
-            lua["csContext"] = e;
+            context.obj[0] = e;
 
-            return (LuaTable)lua.DoString(@"
+            return (LuaTable)context.lua.DoString(@"
 local e = {}
 local meta = {}
 local func = {}
 setmetatable(e, meta)
 
-meta.obj = csContext
+meta.obj = context.obj[0]
 meta.__tostring = function()
     return 'CallContext'
 end
@@ -30,7 +30,7 @@ meta.__index = function(table, key)
 end
 
 func.player = function()
-    return context.caller:Call('CCLua.LuaObjects.Suppliers.LuaPlayerSupplier', 'Supply', context.lua, getmetatable(e).obj.player)
+    return context.caller:Call('CCLua.LuaObjects.Suppliers.LuaPlayerSupplier', 'Supply', context, getmetatable(e).obj.player)
 end
 
 func.mbX = function()
