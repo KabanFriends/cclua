@@ -435,8 +435,11 @@ end
                 }
             } else
             {
-                player.Message("&eLua error:");
-                player.Message("&c" + FormatError(error));
+                if (player.level == level)
+                {
+                    player.Message("&eLua error:");
+                    player.Message("&c" + FormatError(error));
+                }
             }
         }
 
