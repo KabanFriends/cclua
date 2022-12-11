@@ -4,8 +4,6 @@ using MCGalaxy;
 using MCGalaxy.Events.LevelEvents;
 using MCGalaxy.Events.PlayerEvents;
 using MCGalaxy.Util;
-using NLua;
-using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -109,6 +107,11 @@ namespace CCLua
 
         public override void Unload(bool auto)
         {
+            if (LevelHandler.HasLuaContext(Server.mainLevel))
+            {
+                LevelHandler.StopLuaContext(Server.mainLevel);
+            }
+
             if (tempBlockCommand != null)
             {
                 Command.Unregister(tempBlockCommand);

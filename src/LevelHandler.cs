@@ -38,7 +38,7 @@ namespace CCLua
             LuaContext context = GetContextByLevel(level);
             ThreadStart ts = delegate
             {
-                Thread.Sleep(10);
+                Thread.Sleep(1);
                 context.Stop();
             };
 
