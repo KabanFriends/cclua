@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NLua;
 using NLua.Event;
+using NLua.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -166,25 +167,18 @@ namespace CCLua
 local sch = context.obj[0]
 local success, result = coroutine.resume(sch.coroutine)
 local status = coroutine.status(sch.coroutine)
-local hasWait = false
-local resultStr = tostring(result)
-if type(result) == 'number' then
-    hasWait = true
-end
-return success, result, status, hasWait, resultStr
+return success, result, status
 ");
                                 currentPlayer = null;
                                 SetExecutionCheck(false);
 
                                 bool success = (bool)result[0];
                                 string status = (string)result[2];
-                                bool hasWait = (bool)result[3];
-                                string resultStr = (string)result[4];
 
                                 if (success)
                                 {
                                     long wait = Convert.ToInt64(result[1]);
-                                    if (status != "dead" && hasWait && wait >= 0)
+                                    if (status != "dead" && wait >= 0)
                                     {
                                         sch.waitUntil = tick + wait;
                                     } else
@@ -194,7 +188,7 @@ return success, result, status, hasWait, resultStr
                                     }
                                 } else
                                 {
-                                    ReportError(resultStr, sch.luaPlayer?.player, false);
+                                    ReportError(result[1].ToString(), sch.luaPlayer?.player, false);
                                     if (stopped)
                                     {
                                         break;
@@ -206,12 +200,13 @@ return success, result, status, hasWait, resultStr
                     }
                 } catch (Exception e)
                 {
-                    ReportError(e.Message, null, true);
+                    if (!(e is LuaScriptException)) {
+                        Logger.LogError(e);
+                    }
 
+                    ReportError(e.Message, null, true);
                     doTask.Set(); //do not make the main thread stuck
                 }
-
-                lua.DoString("collectgarbage()");
                 lua.Dispose();
                 lua.Close();
             };
@@ -310,13 +305,7 @@ return success, result, status, hasWait, resultStr
 
             taskRecursions[threadId]++;
 
-            try
-            {
-                action();
-            } catch (Exception e)
-            {
-                Logger.LogError(e);
-            }
+            action();
 
             if (taskRecursions[threadId] > 0) taskRecursions[threadId]--;
 
@@ -362,11 +351,15 @@ return success, result, status, hasWait, resultStr
         //Only call this when you are sure that the lua context is available.
         public void RawCallByPlayer(string function, Player player, params object[] args)
         {
-            obj[0] = function;
-            obj[1] = player;
-            obj[2] = args;
+            if (player != null && luaPlayers[player.truename].quit) return;
 
-            lua.DoString(@"
+            try
+            {
+                obj[0] = function;
+                obj[1] = player;
+                obj[2] = args;
+
+                lua.DoString(@"
 local func = context.obj[0]
 local player = context.obj[1]
 local rawArgs = context.obj[2]
@@ -405,6 +398,10 @@ if env[func] ~= nil and type(env[func]) == 'function' then
     end
 end
 ");
+            } catch (Exception e)
+            {
+                ReportError(e.Message, null, true);
+            }
         }
 
         public bool IsObjectSupplier(object obj)
@@ -455,8 +452,6 @@ end
             {
                 if (error != null)
                 {
-                    Logger.Log(LogType.Error, error);
-
                     player.Message("&eLua execution in this map is blocked due to an error!");
                     player.Message("&c" + error);
                 }
@@ -478,6 +473,8 @@ end
                 CCLuaPlugin.usernameMap.Add(p.truename, p.name);
             }
 
+            if (luaPlayers.ContainsKey(p.truename)) return;
+
             ShowStopped(p);
             if (!stopped)
             {
@@ -498,17 +495,19 @@ end
 
         public void HandlePlayerLeave(Player p)
         {
+            if (!luaPlayers.ContainsKey(p.truename)) return;
+
             WaitForLua(delegate
             {
                 RawCallByPlayer("onPlayerLeave", p, new LuaSimplePlayerEventSupplier(new SimplePlayerEvent(p)));
-
-                ResetPlayer(p);
-
-                luaPlayers[p.truename].quit = true;
-
-                playerData.Remove(p.truename);
-                luaPlayers.Remove(p.truename);
             });
+
+            luaPlayers[p.truename].quit = true;
+
+            playerData.Remove(p.truename);
+            luaPlayers.Remove(p.truename);
+
+            ResetPlayer(p);
         }
 
         public void ResetPlayer(Player p)
@@ -534,7 +533,6 @@ end
                 foreach (Hotkey key in data.hotkeys.Values)
                 {
                     PlayerUtil.UndefineHotkey(p, key);
-
                 }
             }
         }

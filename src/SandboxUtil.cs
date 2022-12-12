@@ -35,8 +35,12 @@ end
 
 thread.create = function(f, p)
     local lp = nil
-    if p ~= nil and type(p) == 'string' then
-        lp = context:GetLuaPlayer(n)
+    if p ~= nil then
+        if type(p) == 'string' then
+            lp = context:GetLuaPlayer(p)
+        elseif tostring(p) == 'Player' then
+            lp = context:GetLuaPlayer(p.name)
+        end
     end
     local co = coroutine.create(f)
     context:Schedule(co, 0, lp)
