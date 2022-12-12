@@ -77,7 +77,7 @@ namespace CCLua.Commands
                 }
                 else if (args[0].CaselessEq("call"))
                 {
-                    if (!(data.Context == CommandContext.MessageBlock || LevelInfo.IsRealmOwner(p.name, p.level.name) || p.group.Permission >= LevelPermission.Operator))
+                    if (!(data.Context == CommandContext.MessageBlock || LevelInfo.IsRealmOwner(p.name, p.level.name) || IsRealmBuilder(p, p.level) || p.group.Permission >= LevelPermission.Operator))
                     {
                         p.Message("&cYou can only use &b/lua call&c if it is in a message block or you are the map owner.");
                         return;
@@ -131,7 +131,7 @@ namespace CCLua.Commands
                         return;
                     }
 
-                    if (p.Rank < ExtraPerms[0].Perm && !LevelInfo.IsRealmOwner(p.level, p.name))
+                    if (p.Rank < ExtraPerms[0].Perm && !LevelInfo.IsRealmOwner(p.level, p.name) && !IsRealmBuilder(p, p.level))
                     {
                         p.Message("&cYou may only perform this command on maps that you own.");
                         return;
@@ -208,7 +208,7 @@ namespace CCLua.Commands
 
         private void UploadScript(Player p, string url)
         {
-            if (p.Rank < ExtraPerms[0].Perm && !LevelInfo.IsRealmOwner(p.level, p.name))
+            if (p.Rank < ExtraPerms[0].Perm && !LevelInfo.IsRealmOwner(p.level, p.name) && IsRealmBuilder(p, p.level))
             {
                 p.Message("&cYou can only upload scripts to maps that you own.");
                 return;
@@ -289,6 +289,20 @@ namespace CCLua.Commands
                     File.Delete(path);
                 }
             }
+        }
+
+        private static bool IsRealmBuilder(Player p, Level level)
+        {
+            LevelConfig config = LevelInfo.GetConfig(level.name);
+            if (config.RealmOwner.Length == 0)
+            {
+                return false;
+            }
+            if (config.BuildWhitelist.CaselessContains(p.name))
+            {
+                return true;
+            }
+            return false;
         }
     }
 }
