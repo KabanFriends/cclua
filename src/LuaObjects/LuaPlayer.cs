@@ -6,12 +6,14 @@ namespace CCLua.LuaObjects
     public class LuaPlayer
     {
         public Player player;
+        public PlayerData data;
         public LuaTable table;
         public bool quit;
 
         public LuaPlayer(Player player)
         {
             this.player = player;
+            data = new PlayerData(player);
         }
 
         public void CreateLuaTable(LuaContext context)

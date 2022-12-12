@@ -316,7 +316,7 @@ namespace CCLua
 
         public static void Unfreeze(Player p)
         {
-            PlayerData data = LevelHandler.GetContextByLevel(p.level).GetPlayerData(p);
+            PlayerData data = LevelHandler.GetContextByLevel(p.level).GetLuaPlayer(p.truename).data;
             if (data.customMotd != null)
             {
                 SendMotd(p, data.customMotd);
@@ -469,7 +469,7 @@ namespace CCLua
 
         public static void SetMotd(Player p, string motd)
         {
-            PlayerData data = LevelHandler.GetContextByLevel(p.level).GetPlayerData(p);
+            PlayerData data = LevelHandler.GetContextByLevel(p.level).GetLuaPlayer(p.truename).data;
             if (motd == null || motd.CaselessEq("ignore"))
             {
                 data.customMotd = motd;
@@ -501,7 +501,7 @@ namespace CCLua
 
         public static string GetTrueMotd(Player p)
         {
-            PlayerData data = LevelHandler.GetContextByLevel(p.level).GetPlayerData(p);
+            PlayerData data = LevelHandler.GetContextByLevel(p.level).GetLuaPlayer(p.truename).data;
 
             if (data.customMotd != null)
             {
@@ -531,7 +531,7 @@ namespace CCLua
 
             byte modifierData = GetModifiers(modifiers);
 
-            PlayerData data = LevelHandler.GetContextByLevel(p.level).GetPlayerData(p);
+            PlayerData data = LevelHandler.GetContextByLevel(p.level).GetLuaPlayer(p.truename).data;
             data.hotkeys.Add($"{keyCode}+{modifierData}", new Hotkey(keyCode, modifierData));
 
             string cmd = $"/input {input}\n";
@@ -565,7 +565,7 @@ namespace CCLua
 
             byte modifierData = GetModifiers(modifiers);
 
-            PlayerData data = LevelHandler.GetContextByLevel(p.level).GetPlayerData(p);
+            PlayerData data = LevelHandler.GetContextByLevel(p.level).GetLuaPlayer(p.truename).data;
             if (data.hotkeys.ContainsKey($"{keyCode}+{modifierData}"))
             {
                 Hotkey hotkey = data.hotkeys[$"{keyCode}+{modifierData}"];
@@ -608,7 +608,7 @@ namespace CCLua
 
         public static void SetModel(Player p, string model)
         {
-            PlayerData data = LevelHandler.GetContextByLevel(p.level).GetPlayerData(p);
+            PlayerData data = LevelHandler.GetContextByLevel(p.level).GetLuaPlayer(p.truename).data;
 
             if (model == null)
             {

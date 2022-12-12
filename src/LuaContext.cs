@@ -29,7 +29,6 @@ namespace CCLua
 
         public List<LuaSchedule> schedules;
 
-        public Dictionary<string, PlayerData> playerData;
         public Dictionary<string, LuaPlayer> luaPlayers;
         public Dictionary<string, LuaTable> particleData;
         public Dictionary<string, byte> particleIds;
@@ -71,7 +70,6 @@ namespace CCLua
             lua = new Lua();
             caller = new LuaStaticMethodCaller(this);
             schedules = new List<LuaSchedule>();
-            playerData = new Dictionary<string, PlayerData>();
             luaPlayers = new Dictionary<string, LuaPlayer>();
             particleData = new Dictionary<string, LuaTable>();
             particleIds = new Dictionary<string, byte>();
@@ -478,8 +476,6 @@ end
             ShowStopped(p);
             if (!stopped)
             {
-                playerData.Add(p.truename, new PlayerData(p));
-
                 WaitForLua(delegate
                 {
                     LuaPlayer lp = new LuaPlayer(p);
@@ -502,17 +498,15 @@ end
                 RawCallByPlayer("onPlayerLeave", p, new LuaSimplePlayerEventSupplier(new SimplePlayerEvent(p)));
             });
 
-            luaPlayers[p.truename].quit = true;
-
-            playerData.Remove(p.truename);
-            luaPlayers.Remove(p.truename);
-
             ResetPlayer(p);
+
+            luaPlayers[p.truename].quit = true;
+            luaPlayers.Remove(p.truename);
         }
 
         public void ResetPlayer(Player p)
         {
-            PlayerData data = GetPlayerData(p);
+            PlayerData data = GetLuaPlayer(p.truename).data;
             if (data != null)
             {
                 if (LevelUtil.IsOsLevel(level))
@@ -535,12 +529,6 @@ end
                     PlayerUtil.UndefineHotkey(p, key);
                 }
             }
-        }
-
-        public PlayerData GetPlayerData(Player p)
-        {
-            PlayerData data;
-            return playerData.TryGetValue(p.truename, out data) ? data : null;
         }
 
         public LuaPlayer GetLuaPlayer(string name)

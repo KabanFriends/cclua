@@ -51,7 +51,7 @@ namespace CCLua.PluginEvents
                 LuaContext context = LevelHandler.GetContextByLevel(p.level);
                 if (context == null) return;
 
-                PlayerData data = context.GetPlayerData(p);
+                PlayerData data = context.GetLuaPlayer(p.truename).data;
 
                 if (p.Pos != next || p.Rot.RotY != yaw || p.Rot.HeadX != pitch)
                 {
