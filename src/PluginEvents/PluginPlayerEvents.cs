@@ -49,9 +49,7 @@ namespace CCLua.PluginEvents
             if (LevelHandler.HasLuaContext(p.level))
             {
                 LuaContext context = LevelHandler.GetContextByLevel(p.level);
-                if (context == null) return;
-
-                PlayerData data = context.GetLuaPlayer(p.truename).data;
+                if (!context.IsPlayerInLevel(p)) return;
 
                 if (p.Pos != next || p.Rot.RotY != yaw || p.Rot.HeadX != pitch)
                 {
@@ -65,6 +63,8 @@ namespace CCLua.PluginEvents
             if (LevelHandler.HasLuaContext(p.level))
             {
                 LuaContext context = LevelHandler.GetContextByLevel(p.level);
+                if (!context.IsPlayerInLevel(p)) return;
+
                 var supplier = new LuaPlayerClickEventSupplier(new PlayerClickEvent(p, yaw, pitch, entityID, x, y, z, face));
 
                 if (action == MouseAction.Pressed)
@@ -110,6 +110,7 @@ namespace CCLua.PluginEvents
             if (LevelHandler.HasLuaContext(p.level))
             {
                 LuaContext context = LevelHandler.GetContextByLevel(p.level);
+                if (!context.IsPlayerInLevel(p)) return;
 
                 if (message.StartsWith("$"))
                 {
@@ -137,6 +138,7 @@ namespace CCLua.PluginEvents
             if (LevelHandler.HasLuaContext(p.level))
             {
                 LuaContext context = LevelHandler.GetContextByLevel(p.level);
+                if (!context.IsPlayerInLevel(p)) return;
 
                 ushort oldBlock = p.level.GetBlock(x, y, z);
 
@@ -171,6 +173,8 @@ namespace CCLua.PluginEvents
             if (cmd.CaselessEq("input") && LevelHandler.HasLuaContext(p.level))
             {
                 LuaContext context = LevelHandler.GetContextByLevel(p.level);
+                if (!context.IsPlayerInLevel(p)) return;
+
                 context.CallByPlayer("onPlayerInput", p, new LuaPlayerInputEventSupplier(new PlayerInputEvent(p, args)));
                 p.cancelcommand = true;
             }

@@ -349,7 +349,7 @@ return success, result, status
         //Only call this when you are sure that the lua context is available.
         public void RawCallByPlayer(string function, Player player, params object[] args)
         {
-            if (player != null && luaPlayers[player.truename].quit) return;
+            if (player != null && !IsPlayerInLevel(player)) return;
 
             try
             {
@@ -452,6 +452,9 @@ end
                 {
                     player.Message("&eLua execution in this map is blocked due to an error!");
                     player.Message("&c" + error);
+                } else
+                {
+                    player.Message("&eLua execution in this map is stopped!");
                 }
             }
         }
@@ -529,6 +532,14 @@ end
                     PlayerUtil.UndefineHotkey(p, key);
                 }
             }
+        }
+
+        public bool IsPlayerInLevel(Player p)
+        {
+            LuaPlayer lp = GetLuaPlayer(p.truename);
+            if (lp == null) return false;
+            if (lp.quit) return false;
+            return true;
         }
 
         public LuaPlayer GetLuaPlayer(string name)
