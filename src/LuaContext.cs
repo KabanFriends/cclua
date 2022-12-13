@@ -195,6 +195,8 @@ return success, result, status
                                 }
                             }
                         }
+
+                        lua.DoString("collectgarbage()");
                     }
                 } catch (Exception e)
                 {
@@ -214,8 +216,6 @@ return success, result, status
 
         public void CheckExecution(object sender, DebugHookEventArgs args)
         {
-            lua.DoString("collectgarbage()");
-
             if (!doExecutionCheck)
             {
                 return;
@@ -229,13 +229,15 @@ return success, result, status
 
             if (instructionCount > config.instructionLimit)
             {
-                lua.State.Error($"Instruction limit exceeded! (Line {args.LuaDebug.CurrentLine})");
+                error = $"Instruction limit exceeded! (Line {args.LuaDebug.CurrentLine})";
+                lua.State.Error(error);
                 Stop();
             }
 
             if (nanoDiff > config.instantExecutionTimeNanos)
             {
-                lua.State.Error($"The code took too long to execute! This may have been caused by an infinite loop. (Line {args.LuaDebug.CurrentLine})");
+                error = $"The code took too long to execute! This may have been caused by an infinite loop. (Line {args.LuaDebug.CurrentLine})";
+                lua.State.Error(error);
                 Stop();
             }
 
@@ -509,7 +511,7 @@ end
 
         public void ResetPlayer(Player p)
         {
-            PlayerData data = GetLuaPlayer(p.truename).data;
+            PlayerData data = GetLuaPlayer(p.truename)?.data;
             if (data != null)
             {
                 if (LevelUtil.IsOsLevel(level))
