@@ -454,9 +454,6 @@ end
                 {
                     player.Message("&eLua execution in this map is blocked due to an error!");
                     player.Message("&c" + error);
-                } else
-                {
-                    player.Message("&eLua execution in this map is stopped!");
                 }
             }
         }
