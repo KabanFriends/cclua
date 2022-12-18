@@ -6,10 +6,10 @@
 
         public override int executionCheckTimeMs => 5;
 
-        public override int instructionsPerExecutionCheck => 10;
+        public override int instructionsPerExecutionCheck => 50;
 
-        public override int instantExecutionTimeNanos => 500 * 1000000;
+        public override long instantExecutionTimeNanos => 10000 * 1000000L;
 
-        public override int storageMaxSize => 20_000_000; //20MB 
+        public override int storageMaxSize => 50_000_000; //50MB
     }
 }

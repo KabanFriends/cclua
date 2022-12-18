@@ -205,8 +205,11 @@ return success, result, status
                     }
 
                     ReportError(e.Message, null, true);
-                    doTask.Set(); //do not make the main thread stuck
                 }
+
+                stopped = true;
+                doTask.Set();
+
                 lua.Dispose();
                 lua.Close();
             };
@@ -359,6 +362,9 @@ return success, result, status
                 obj[1] = player;
                 obj[2] = args;
 
+                currentPlayer = player;
+                SetExecutionCheck(true);
+                
                 lua.DoString(@"
 local func = context.obj[0]
 local player = context.obj[1]
@@ -380,11 +386,8 @@ if env[func] ~= nil and type(env[func]) == 'function' then
         env[func](table.unpack(args))
     end)
 
-    context.currentPlayer = player;
-    context:SetExecutionCheck(true)
     local success, result = coroutine.resume(co)
-    context:SetExecutionCheck(false)
-    context.currentPlayer = nil;
+
     if success then
         if coroutine.status(co) ~= 'dead' and type(result) == 'number' and result >= 0 then
             local lp = nil
@@ -401,6 +404,10 @@ end
             } catch (Exception e)
             {
                 ReportError(e.Message, null, true);
+            } finally
+            {
+                currentPlayer = null;
+                SetExecutionCheck(false);
             }
         }
 

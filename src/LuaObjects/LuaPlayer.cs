@@ -119,7 +119,7 @@ end
 -- FUNCTIONS
 p.message = function(str)
     if getmetatable(p).obj.quit == true then return end
-    context.caller:Call('CCLua.PlayerUtil', 'Message', getmetatable(p).obj.player, str)
+    context.caller:Call('CCLua.PlayerUtil', 'Message', getmetatable(p).obj.player, tostring(str))
 end
 
 p.cpeMessage = function(pos, str)

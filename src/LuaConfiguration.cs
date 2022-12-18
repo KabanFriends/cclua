@@ -17,7 +17,7 @@
             get;
         }
 
-        public abstract int instantExecutionTimeNanos
+        public abstract long instantExecutionTimeNanos
         {
             get;
         }
