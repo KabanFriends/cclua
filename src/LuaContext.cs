@@ -7,7 +7,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NLua;
 using NLua.Event;
-using NLua.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,6 +26,7 @@ namespace CCLua
 
         public Level level;
 
+        public List<Thread> threads;
         public List<LuaSchedule> schedules;
 
         public Dictionary<string, LuaPlayer> luaPlayers;
@@ -49,13 +49,6 @@ namespace CCLua
         private bool saveQueued;
         private bool saving;
 
-        private AutoResetEvent doTask = new AutoResetEvent(false);
-        private AutoResetEvent doLuaLoop = new AutoResetEvent(false);
-
-        private int taskCount;
-
-        private Dictionary<int, int> taskRecursions;
-
         public LuaContext(Level level)
         {
             this.level = level;
@@ -63,158 +56,70 @@ namespace CCLua
 
         public void LoadLua()
         {
-            string luaPath = Constants.CCLUA_BASE_DIR + Constants.SCRIPT_DIR + level.name + ".lua";
-            string dataPath = Constants.CCLUA_BASE_DIR + Constants.STORAGE_DIR + level.name + ".dat";
-
-            obj = new object[5];
-            lua = new Lua();
-            caller = new LuaStaticMethodCaller(this);
-            schedules = new List<LuaSchedule>();
-            luaPlayers = new Dictionary<string, LuaPlayer>();
-            particleData = new Dictionary<string, LuaTable>();
-            particleIds = new Dictionary<string, byte>();
-            taskRecursions = new Dictionary<int, int>();
-
-            lua.State.Encoding = Encoding.UTF8;
-
-            string code = File.ReadAllText(luaPath);
-
-            lastTimestamp = Environment.TickCount;
-
-            SandboxUtil.SetupEnvironment(this);
-
-            if (File.Exists(dataPath))
+            lock (this)
             {
-                byte[] dataBytes;
-                dataBytes = File.ReadAllBytes(dataPath);
+                string luaPath = Constants.CCLUA_BASE_DIR + Constants.SCRIPT_DIR + level.name + ".lua";
+                string dataPath = Constants.CCLUA_BASE_DIR + Constants.STORAGE_DIR + level.name + ".dat";
 
-                string json = ZstdUtil.DecompressFromBytes(dataBytes);
-                dataJson = JObject.Parse(json);
-            } else
-            {
-                dataJson = new JObject();
-            }
+                obj = new object[5];
+                lua = new Lua();
+                caller = new LuaStaticMethodCaller(this);
+                threads = new List<Thread>();
+                schedules = new List<LuaSchedule>();
+                luaPlayers = new Dictionary<string, LuaPlayer>();
+                particleData = new Dictionary<string, LuaTable>();
+                particleIds = new Dictionary<string, byte>();
 
-            try
-            {
-                obj[0] = code;
-                SetExecutionCheck(true);
-                lua.DoString($"sandbox.run(context.obj[0], {{source = '{Path.GetFileName(luaPath)}'}})");
-                SetExecutionCheck(false);
-            }
-            catch (Exception e)
-            {
-                ReportError(e.Message, null, true);
-                return;
-            }
+                lua.State.Encoding = Encoding.UTF8;
 
-            Server.MainScheduler.QueueRepeat(delegate (SchedulerTask task)
-            {
-                if (!stopped)
+                string code = File.ReadAllText(luaPath);
+
+                lastTimestamp = Environment.TickCount;
+
+                SandboxUtil.SetupEnvironment(this);
+
+                if (File.Exists(dataPath))
                 {
-                    if (level != Server.mainLevel)
-                    {
-                        Logger.Log(LogType.SystemActivity, "cclua: Auto-saving data for level " + level.name);
-                    }
-                    SaveDataAsync();
+                    byte[] dataBytes;
+                    dataBytes = File.ReadAllBytes(dataPath);
+
+                    string json = ZstdUtil.DecompressFromBytes(dataBytes);
+                    dataJson = JObject.Parse(json);
                 }
                 else
                 {
-                    task.Repeating = false;
+                    dataJson = new JObject();
                 }
-            }, null, TimeSpan.FromSeconds(Constants.DATA_AUTOSAVE_SECONDS));
 
-            ThreadStart ts = delegate
-            {
                 try
                 {
-                    while (true)
-                    {
-                        if (taskCount > 0)
-                        {
-                            doTask.Set();
-                            doLuaLoop.WaitOne();
-
-                            if (stopped)
-                            {
-                                break;
-                            }
-                        }
-
-                        if (stopped)
-                        {
-                            break;
-                        }
-
-                        int tick = Environment.TickCount;
-                        for (int i = schedules.Count - 1; i >= 0; i--)
-                        {
-                            LuaSchedule sch = schedules[i];
-                            if (sch.luaPlayer != null && sch.luaPlayer.quit)
-                            {
-                                schedules.RemoveAt(i);
-                                continue;
-                            }
-
-                            if (tick > sch.waitUntil)
-                            {
-                                currentPlayer = sch.luaPlayer?.player;
-                                SetExecutionCheck(true);
-                                obj[0] = sch;
-                                object[] result = lua.DoString(@"
-local sch = context.obj[0]
-local success, result = coroutine.resume(sch.coroutine)
-local status = coroutine.status(sch.coroutine)
-return success, result, status
-");
-                                currentPlayer = null;
-                                SetExecutionCheck(false);
-
-                                bool success = (bool)result[0];
-                                string status = (string)result[2];
-
-                                if (success)
-                                {
-                                    long wait = Convert.ToInt64(result[1]);
-                                    if (status != "dead" && wait >= 0)
-                                    {
-                                        sch.waitUntil = tick + wait;
-                                    } else
-                                    {
-                                        schedules.RemoveAt(i);
-                                        continue;
-                                    }
-                                } else
-                                {
-                                    ReportError(result[1].ToString(), sch.luaPlayer?.player, false);
-                                    if (stopped)
-                                    {
-                                        break;
-                                    }
-                                    schedules.RemoveAt(i);
-                                }
-                            }
-                        }
-
-                        lua.DoString("collectgarbage()");
-                    }
-                } catch (Exception e)
+                    obj[0] = code;
+                    SetExecutionCheck(true);
+                    lua.DoString($"sandbox.run(context.obj[0], {{source = '{Path.GetFileName(luaPath)}'}})");
+                    SetExecutionCheck(false);
+                }
+                catch (Exception e)
                 {
-                    if (!(e is LuaScriptException)) {
-                        Logger.LogError(e);
-                    }
-
                     ReportError(e.Message, null, true);
+                    return;
                 }
 
-                stopped = true;
-                doTask.Set();
-
-                lua.Dispose();
-                lua.Close();
-            };
-
-            new Thread(ts).Start();
+                Server.MainScheduler.QueueRepeat(delegate (SchedulerTask task)
+                {
+                    if (!stopped)
+                    {
+                        if (level != Server.mainLevel)
+                        {
+                            Logger.Log(LogType.SystemActivity, "cclua: Auto-saving data for level " + level.name);
+                        }
+                        SaveDataAsync();
+                    }
+                    else
+                    {
+                        task.Repeating = false;
+                    }
+                }, null, TimeSpan.FromSeconds(Constants.DATA_AUTOSAVE_SECONDS));
+            }
         }
 
         public void CheckExecution(object sender, DebugHookEventArgs args)
@@ -268,6 +173,11 @@ return success, result, status
             if (stopped) return;
             stopped = true;
 
+            foreach (Thread t in threads)
+            {
+                t.Interrupt();
+            }
+
             Logger.Log(LogType.SystemActivity, "cclua: Saving data for level " + level.name);
             SaveDataAsync();
 
@@ -281,50 +191,13 @@ return success, result, status
 
         public void WaitForLua(Action action)
         {
-            if (stopped)
+            lock (lua)
             {
-                doLuaLoop.Set();
-                return;
-            }
+                if (stopped) return;
 
-            var threadId = Thread.CurrentThread.ManagedThreadId;
+                action();
 
-            if (!taskRecursions.ContainsKey(threadId))
-            {
-                taskRecursions[threadId] = 0;
-            }
-
-            if (taskRecursions[threadId] == 0)
-            {
-                taskCount++;
-                doTask.WaitOne();
-            }
-
-            if (stopped)
-            {
-                doLuaLoop.Set();
-                return;
-            }
-
-            taskRecursions[threadId]++;
-
-            action();
-
-            if (taskRecursions[threadId] > 0) taskRecursions[threadId]--;
-
-            if (taskRecursions[threadId] == 0)
-            {
-                taskRecursions.Remove(threadId);
-                taskCount--;
-
-                if (taskCount > 0)
-                {
-                    doTask.Set();
-                } else
-                {
-                    taskCount = 0;;
-                    doLuaLoop.Set();
-                }
+                lua.DoString("collectgarbage()");
             }
         }
 
@@ -346,26 +219,36 @@ return success, result, status
 
             WaitForLua(delegate
             {
-                RawCallByPlayer(function, player, args);
+                RawCall(function, player, args);
             });
         }
 
         //Calls a lua function without waiting for lua context to be available.
         //Only call this when you are sure that the lua context is available.
-        public void RawCallByPlayer(string function, Player player, params object[] args)
+        public void RawCall(string function, Player player, params object[] args)
         {
             if (player != null && !IsPlayerInLevel(player)) return;
 
             try
             {
+                LuaPlayer lp = null;
+                if (player != null)
+                {
+                    lp = GetLuaPlayer(player.truename);
+                    if (lp == null || lp.quit)
+                    {
+                        return;
+                    }
+                }
+
                 obj[0] = function;
                 obj[1] = player;
                 obj[2] = args;
 
                 currentPlayer = player;
                 SetExecutionCheck(true);
-                
-                lua.DoString(@"
+
+                object[] result = lua.DoString(@"
 local func = context.obj[0]
 local player = context.obj[1]
 local rawArgs = context.obj[2]
@@ -386,21 +269,13 @@ if env[func] ~= nil and type(env[func]) == 'function' then
         env[func](table.unpack(args))
     end)
 
-    local success, result = coroutine.resume(co)
-
-    if success then
-        if coroutine.status(co) ~= 'dead' and type(result) == 'number' and result >= 0 then
-            local lp = nil
-            if player ~= nil and type(player) == 'string' then
-                lp = context:GetLuaPlayer(player.truename)
-            end
-            context:Schedule(co, result, lp)
-        end
-    else
-        context:ReportError(tostring(result), player, false)
-    end
+    return co
 end
 ");
+                if (result.Length > 0)
+                {
+                    RunLuaCoroutine(result[0], lp);
+                }
             } catch (Exception e)
             {
                 ReportError(e.Message, null, true);
@@ -408,6 +283,66 @@ end
             {
                 currentPlayer = null;
                 SetExecutionCheck(false);
+            }
+        }
+
+        public void RunLuaCoroutine(object coroutine, LuaPlayer lp)
+        {
+            currentPlayer = lp?.player;
+            SetExecutionCheck(true);
+
+            obj[0] = coroutine;
+            object[] result = lua.DoString(@"
+local co = context.obj[0]
+local success, result = coroutine.resume(co)
+local status = coroutine.status(co)
+return success, result, status
+");
+
+            SetExecutionCheck(false);
+            currentPlayer = null;
+
+            bool success = (bool)result[0];
+            string status = (string)result[2];
+
+            if (success)
+            {
+                int wait = Convert.ToInt32(result[1]);
+                if (status != "dead" && wait >= 0)
+                {
+                    ThreadStart ts = new ThreadStart(delegate
+                    {
+                        try
+                        {
+                            Thread.Sleep(wait);
+
+                            WaitForLua(delegate
+                            {
+                                if (lp != null && lp.quit)
+                                {
+                                    return;
+                                }
+
+                                RunLuaCoroutine(coroutine, lp);
+                            });
+
+                            threads.Remove(Thread.CurrentThread);
+                        } catch (ThreadInterruptedException e)
+                        {
+#if DEBUG
+                            Print("Sleeping thread stopped (" + Thread.CurrentThread.ManagedThreadId + ")");
+#endif
+                        }
+                    });
+
+                    Thread t = new Thread(ts);
+                    threads.Add(t);
+                    t.Start();
+                }
+            }
+            else
+            {
+                ReportError(result[1].ToString(), lp?.player, false);
             }
         }
 
@@ -423,6 +358,10 @@ end
 
         public void ReportError(string error, Player player, bool stopIfGlobal)
         {
+#if DEBUG
+            Logger.Log(LogType.Error, "Error: " + error + " (Player: " + player + ")");
+#endif
+
             if (player == null)
             {
                 if (stopIfGlobal)
@@ -485,7 +424,7 @@ end
             ShowStopped(p);
             if (!stopped)
             {
-                WaitForLua(delegate
+                lock (lua)
                 {
                     LuaPlayer lp = new LuaPlayer(p);
                     lp.CreateLuaTable(this);
@@ -493,8 +432,8 @@ end
                     luaPlayers.Add(p.truename, lp);
 
                     SendAllParticles(p);
-                    RawCallByPlayer("onPlayerJoin", p, new LuaSimplePlayerEventSupplier(new SimplePlayerEvent(p)));
-                });
+                    RawCall("onPlayerJoin", p, new LuaSimplePlayerEventSupplier(new SimplePlayerEvent(p)));
+                }
             }
         }
 
@@ -502,10 +441,10 @@ end
         {
             if (!luaPlayers.ContainsKey(p.truename)) return;
 
-            WaitForLua(delegate
+            lock (lua)
             {
-                RawCallByPlayer("onPlayerLeave", p, new LuaSimplePlayerEventSupplier(new SimplePlayerEvent(p)));
-            });
+                RawCall("onPlayerLeave", p, new LuaSimplePlayerEventSupplier(new SimplePlayerEvent(p)));
+            }
 
             ResetPlayer(p);
 
