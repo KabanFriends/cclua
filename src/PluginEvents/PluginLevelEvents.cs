@@ -6,12 +6,6 @@ namespace CCLua.PluginEvents
     {
         public static void OnLevelLoaded(Level level)
         {
-            if (LevelHandler.HasLuaContext(level))
-            {
-                //should not happen, but just in case
-                LevelHandler.StopLuaContext(level);
-            }
-
             if (LevelHandler.TryCreateLuaContext(level))
             {
                 LuaContext context = LevelHandler.GetContextByLevel(level);

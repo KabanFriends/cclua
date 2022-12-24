@@ -171,9 +171,9 @@ namespace CCLua
             if (stopped) return;
             stopped = true;
 
-            foreach (Thread t in threads)
+            for (int i = threads.Count - 1; i >= 0; i--)
             {
-                t.Interrupt();
+                threads[i].Interrupt();
             }
 
             Logger.Log(LogType.SystemActivity, "cclua: Saving data for level " + level.name);
@@ -182,6 +182,11 @@ namespace CCLua
             foreach (Player p in level.players)
             {
                 ResetPlayer(p);
+            }
+
+            lock (lua)
+            {
+                lua.Dispose();
             }
 
             ShowStoppedAll();
@@ -213,8 +218,6 @@ namespace CCLua
         {
             if (stopped) return;
 
-            if (player != null && !luaPlayers.ContainsKey(player.truename)) return;
-
             WaitForLua(delegate
             {
                 RawCall(function, player, args);
@@ -225,20 +228,18 @@ namespace CCLua
         //Only call this when you are sure that the lua context is available.
         public void RawCall(string function, Player player, params object[] args)
         {
-            if (player != null && !IsPlayerInLevel(player)) return;
+            LuaPlayer lp = null;
+            if (player != null)
+            {
+                lp = GetLuaPlayer(player.truename);
+                if (lp == null || lp.quit)
+                {
+                    return;
+                }
+            }
 
             try
             {
-                LuaPlayer lp = null;
-                if (player != null)
-                {
-                    lp = GetLuaPlayer(player.truename);
-                    if (lp == null || lp.quit)
-                    {
-                        return;
-                    }
-                }
-
                 obj[0] = function;
                 obj[1] = player;
                 obj[2] = args;
@@ -488,6 +489,8 @@ return success, result, status
 
         public bool IsPlayerInLevel(Player p)
         {
+            if (stopped) return false;
+
             LuaPlayer lp = GetLuaPlayer(p.truename);
             if (lp == null) return false;
             if (lp.quit) return false;
@@ -496,6 +499,8 @@ return success, result, status
 
         public LuaPlayer GetLuaPlayer(string name)
         {
+            if (stopped) return null;
+
             LuaPlayer lp;
             return luaPlayers.TryGetValue(name, out lp) ? lp : null;
         }

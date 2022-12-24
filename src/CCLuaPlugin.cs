@@ -107,6 +107,12 @@ namespace CCLua
 
         public override void Unload(bool auto)
         {
+            foreach(KeyValuePair<string, LuaContext> pair in LevelHandler.contexts)
+            {
+                pair.Value.Call("onLevelStop");
+                pair.Value.Stop();
+            }
+
             if (LevelHandler.HasLuaContext(Server.mainLevel))
             {
                 LevelHandler.StopLuaContext(Server.mainLevel);

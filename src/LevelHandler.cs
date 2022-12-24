@@ -36,15 +36,7 @@ namespace CCLua
         public static void StopLuaContext(Level level)
         {
             LuaContext context = GetContextByLevel(level);
-            ThreadStart ts = delegate
-            {
-                Thread.Sleep(1);
-                context.Stop();
-            };
-
-            Thread t = new Thread(ts);
-            t.Start();
-
+            context.Stop();
             contexts.Remove(level.name);
         }
 
