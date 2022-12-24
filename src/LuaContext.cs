@@ -27,7 +27,6 @@ namespace CCLua
         public Level level;
 
         public List<Thread> threads;
-        public List<LuaSchedule> schedules;
 
         public Dictionary<string, LuaPlayer> luaPlayers;
         public Dictionary<string, LuaTable> particleData;
@@ -65,7 +64,6 @@ namespace CCLua
                 lua = new Lua();
                 caller = new LuaStaticMethodCaller(this);
                 threads = new List<Thread>();
-                schedules = new List<LuaSchedule>();
                 luaPlayers = new Dictionary<string, LuaPlayer>();
                 particleData = new Dictionary<string, LuaTable>();
                 particleIds = new Dictionary<string, byte>();
@@ -310,34 +308,7 @@ return success, result, status
                 int wait = Convert.ToInt32(result[1]);
                 if (status != "dead" && wait >= 0)
                 {
-                    ThreadStart ts = new ThreadStart(delegate
-                    {
-                        try
-                        {
-                            Thread.Sleep(wait);
-
-                            WaitForLua(delegate
-                            {
-                                if (lp != null && lp.quit)
-                                {
-                                    return;
-                                }
-
-                                RunLuaCoroutine(coroutine, lp);
-                            });
-
-                            threads.Remove(Thread.CurrentThread);
-                        } catch (ThreadInterruptedException e)
-                        {
-#if DEBUG
-                            Print("Sleeping thread stopped (" + Thread.CurrentThread.ManagedThreadId + ")");
-#endif
-                        }
-                    });
-
-                    Thread t = new Thread(ts);
-                    threads.Add(t);
-                    t.Start();
+                    Schedule(coroutine, wait, lp);
                 }
             }
             else
@@ -351,9 +322,37 @@ return success, result, status
             return obj is LuaObjectSupplier;
         }
 
-        public void Schedule(object coroutine, long waitMilliseconds, LuaPlayer luaPlayer = null)
+        public void Schedule(object coroutine, int waitMilliseconds, LuaPlayer lp = null)
         {
-            schedules.Add(new LuaSchedule(coroutine, waitMilliseconds, luaPlayer));
+            ThreadStart ts = new ThreadStart(delegate
+            {
+                try
+                {
+                    Thread.Sleep(waitMilliseconds);
+
+                    WaitForLua(delegate
+                    {
+                        if (lp != null && lp.quit)
+                        {
+                            return;
+                        }
+
+                        RunLuaCoroutine(coroutine, lp);
+                    });
+
+                    threads.Remove(Thread.CurrentThread);
+                }
+                catch (ThreadInterruptedException e)
+                {
+#if DEBUG
+                    Print("Sleeping thread stopped (" + Thread.CurrentThread.ManagedThreadId + ")");
+#endif
+                }
+            });
+
+            Thread t = new Thread(ts);
+            threads.Add(t);
+            t.Start();
         }
 
         public void ReportError(string error, Player player, bool stopIfGlobal)
