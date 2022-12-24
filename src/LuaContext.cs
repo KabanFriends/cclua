@@ -340,7 +340,11 @@ return success, result, status
                         RunLuaCoroutine(coroutine, lp);
                     });
 
-                    threads.Remove(Thread.CurrentThread);
+                    lock (threads)
+                    {
+                        threads.Remove(Thread.CurrentThread);
+                    }
+                    
                 }
                 catch (ThreadInterruptedException e)
                 {
@@ -351,8 +355,12 @@ return success, result, status
             });
 
             Thread t = new Thread(ts);
-            threads.Add(t);
             t.Start();
+
+            lock (threads)
+            {
+                threads.Add(t);
+            }
         }
 
         public void ReportError(string error, Player player, bool stopIfGlobal)
