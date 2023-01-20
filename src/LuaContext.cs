@@ -355,7 +355,7 @@ return success, result, status
                 }
                 catch (Exception e)
                 {
-                    ReportError(e, lp?.player, false);
+                    ReportError(e.ToString(), lp?.player, false);
                 }
             });
 
