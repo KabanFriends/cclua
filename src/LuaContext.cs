@@ -353,6 +353,10 @@ return success, result, status
                     Print("Sleeping thread stopped (" + Thread.CurrentThread.ManagedThreadId + ")");
 #endif
                 }
+                catch (Exception e)
+                {
+                    ReportError(e, lp?.player, false);
+                }
             });
 
             Thread t = new Thread(ts);
